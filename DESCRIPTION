@@ -13,4 +13,5 @@ Depends:
         smashr,
         ashr,
         caTools,
+        MASS,
         wavethresh

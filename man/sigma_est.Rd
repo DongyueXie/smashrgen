@@ -4,12 +4,17 @@
 \alias{sigma_est}
 \title{A function estimate \sigma^2 using method 4}
 \usage{
-sigma_est(x, mu, st, method)
+sigma_est(x, mu, st, method, var_est = "smash", k = NULL,
+  family = "DaubExPhase", filter.number = 1)
 }
 \arguments{
 \item{x:}{data}
 
-\item{method:}{'smashc', 'moment', 'wls', 'ols'}
+\item{method:}{'eb', 'moment', 'wls', 'mle','huber'}
+
+\item{var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
+
+\item{k:}{parameter in huber m estimator}
 }
 \value{
 estimated sd

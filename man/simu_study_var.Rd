@@ -4,7 +4,8 @@
 \alias{simu_study_var}
 \title{Function to do comparisons among methods}
 \usage{
-simu_study_var(mu, st, sigma, niter = 100, seed = 12345)
+simu_study_var(mu, st, sigma, niter = 100, seed = 12345,
+  var_est = "smash")
 }
 \arguments{
 \item{est:}{'s' or 'sst'. 's':sigma only. 'sst': sigma^2+s_t^2}

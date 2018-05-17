@@ -4,17 +4,23 @@
 \alias{smash.gaus.gen}
 \title{function to estimate both mu and \sigma}
 \usage{
-smash.gaus.gen(x, st, family = "DaubExPhase", niters = 2,
-  method = "smashc")
+smash.gaus.gen(x, st, method = "mle", var_est = "smash",
+  family = "DaubExPhase", filter.number = 1, niters = 2, k = NULL)
 }
 \arguments{
 \item{st:}{known variance}
 
 \item{family:}{wavelet basis}
 
+\item{filter.number:}{as in smash.gaus}
+
 \item{niters:}{number of iterations to estimate \sigma and mu}
 
-\item{method:}{'smashc', 'ols' amd 'moment'}
+\item{method:}{'mle', 'moment', 'eb', 'huber','wls'}
+
+\item{var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
+
+\item{k:}{parameter in huber m estimator}
 }
 \value{
 estimated mean and \sigma

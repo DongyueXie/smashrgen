@@ -11,12 +11,14 @@
 #' @param dist_family: family of ditribution: 'poisson','binomial'.
 #' @param ntri: Binomial number of trials
 #' @param method: method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.
-#' @param reall: whether return all estimates including mean and standard deviation(\sigma, only when method='smashc','ols' or 'moment').
+#' @param reall: whether return all estimates including mean and standard deviation(\sigma).
+#' @param var_est: method to estimate variance: 'rmad', 'smash', 'default'
+#' @param k: parameter in huber m estimator
 #' @return estimated mean
 #' @export
 
-smash_gen=function(x,sigma=NULL,ntri=NULL,wave_family='DaubExPhase',
-                   ashp=TRUE,verbose=FALSE, robust=FALSE,
+smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPhase',
+                   ashp=TRUE,verbose=FALSE,robust=FALSE,filter.number=1,
                    niter=1,tol=1e-2,dist_family='poisson',method='smashu',
                    reall=FALSE){
   n=length(x)
@@ -57,21 +59,20 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,wave_family='DaubExPhase',
   if(is.null(sigma)){
     if(method=='smashu'){
       mu.hat=smash.gaus(y[i,])
-    }
-    if(method=='rmad'){
-      mu.hat=smash.gaus(y[i,],sigma=sst_est(y[i,],method=method),family=wave_family)
-    }
-    if(method=='ols'|method=='smashc'|method=='moment'){
+    }else if(method=='rmad'){
+      mu.hat=smash.gaus(y[i,],sigma=sst_est(y[i,],method,filter.number,wave_family),
+                        family=wave_family,filter.number=filter.number)
+    }else{
       sgg=smash.gaus.gen(y[i,],sqrt(ifelse(s[i,]<0,1e-8,s[i,])),
-                         family=wave_family,method=method)
+                         family=wave_family,method=method,var_est=var_est,filter.number=filter.number,k=k)
       mu.hat=sgg$mu.hat
       sd.hat=sgg$sd.hat
     }
   }else{
-    mu.hat=smash.gaus(y[i,],sigma = sqrt(sigma^2+ifelse(s[i,]<0,1e-8,s[i,])))
+    mu.hat=smash.gaus(y[i,],sigma = sqrt(sigma^2+ifelse(s[i,]<0,1e-8,s[i,])),family=wave_family,filter.number=filter.number)
   }
   m.est=update_smash_gen(mu.hat,x,ntri,dist_family)$mt
-  if(reall&(method=='ols'|method=='smashc'|method=='moment')){
+  if(reall&(method=='mle'|method=='eb'|method=='moment'|method=='wls'|method=='huber')){
     return(list(m.est=m.est,sd.est=sd.hat))
   }else{
     return(m.est)

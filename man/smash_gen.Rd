@@ -4,8 +4,9 @@
 \alias{smash_gen}
 \title{A more general verison of smashgen that works for different data type and variance settings}
 \usage{
-smash_gen(x, sigma = NULL, ntri = NULL, wave_family = "DaubExPhase",
-  ashp = TRUE, verbose = FALSE, robust = FALSE, niter = 1, tol = 0.01,
+smash_gen(x, sigma = NULL, ntri = NULL, var_est = "smash",
+  wave_family = "DaubExPhase", ashp = TRUE, verbose = FALSE,
+  robust = FALSE, filter.number = 1, niter = 1, tol = 0.01,
   dist_family = "poisson", method = "smashu", reall = FALSE)
 }
 \arguments{
@@ -31,7 +32,11 @@ smash_gen(x, sigma = NULL, ntri = NULL, wave_family = "DaubExPhase",
 
 \item{method:}{method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.}
 
-\item{reall:}{whether return all estimates including mean and standard deviation(\sigma, only when method='smashc','ols' or 'moment').}
+\item{reall:}{whether return all estimates including mean and standard deviation(\sigma).}
+
+\item{var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
+
+\item{k:}{parameter in huber m estimator}
 }
 \value{
 estimated mean
