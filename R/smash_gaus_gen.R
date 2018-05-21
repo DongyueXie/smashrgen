@@ -5,13 +5,13 @@
 #' @param family: wavelet basis
 #' @param filter.number: as in smash.gaus
 #' @param niters: number of iterations to estimate \sigma and mu
-#' @param method: 'mle', 'moment', 'eb', 'huber','wls'
-#' @param var_est: method to estimate variance: 'rmad', 'smash', 'default'
+#' @param y_var_est: 'mle', 'moment', 'eb', 'huber','wls'
+#' @param z_var_est: method to estimate variance: 'rmad', 'smash', 'default'
 #' @param k: parameter in huber m estimator
 #' @return estimated mean and \sigma
 #' @export
 
-smash.gaus.gen=function(x,st,method='mle',var_est='smash',family='DaubExPhase',
+smash.gaus.gen=function(x,st,y_var_est='mle',z_var_est='smash',family='DaubExPhase',
                         filter.number=1,niters=2,k=NULL){
   #initialize \sigma^2 using moment method
   sigma0=sigma_est(x,st=st,method = 'moment')
@@ -24,7 +24,7 @@ smash.gaus.gen=function(x,st,method='mle',var_est='smash',family='DaubExPhase',
     mu.hat=smash.gaus(x,sigma=sqrt(sd.est[iter]^2+st^2),family=family,filter.number = filter.number)
     mu.est=rbind(mu.est,mu.hat)
     #estimate sd given mu
-    sd.hat=sigma_est(x,mu.est[iter,],st,var_est=var_est,k=k,method=method,family=family,filter.number = filter.number)
+    sd.hat=sigma_est(x,mu.est[iter,],st,var_est=z_var_est,k=k,method=y_var_est,family=family,filter.number = filter.number)
     sd.est=c(sd.est,sd.hat)
   }
   #mu.hat=smash.gaus(x,sigma=sqrt(sd.hat^2+st^2),family=family)

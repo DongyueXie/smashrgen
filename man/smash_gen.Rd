@@ -4,10 +4,10 @@
 \alias{smash_gen}
 \title{A more general verison of smashgen that works for different data type and variance settings}
 \usage{
-smash_gen(x, sigma = NULL, ntri = NULL, var_est = "smash",
+smash_gen(x, sigma = NULL, ntri = NULL, z_var_est = "rmad",
   wave_family = "DaubExPhase", ashp = TRUE, verbose = FALSE,
   robust = FALSE, filter.number = 1, niter = 1, tol = 0.01,
-  dist_family = "poisson", method = "smashu", reall = FALSE)
+  dist_family = "poisson", y_var_est = "smashu", re_all = FALSE)
 }
 \arguments{
 \item{x:}{a vector of observations}
@@ -26,15 +26,15 @@ smash_gen(x, sigma = NULL, ntri = NULL, var_est = "smash",
 
 \item{verbose:}{whether print out the number of iterations to converge.}
 
-\item{dist_family:}{family of ditribution: 'poisson','binomial'.}
+\item{dist_family:}{family of ditribution: 'poisson','binomial','poi_binom'.}
 
 \item{ntri:}{Binomial number of trials}
 
-\item{method:}{method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.}
+\item{y_var_est:}{method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.}
 
-\item{reall:}{whether return all estimates including mean and standard deviation(\sigma).}
+\item{re_all:}{whether return all estimates including mean and standard deviation(\sigma).}
 
-\item{var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
+\item{z_var_est:}{method to estimate variance of intermidiate variable z: 'rmad', 'smash', 'default'}
 
 \item{k:}{parameter in huber m estimator}
 }

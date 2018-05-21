@@ -4,7 +4,7 @@
 \alias{smash.gaus.gen}
 \title{function to estimate both mu and \sigma}
 \usage{
-smash.gaus.gen(x, st, method = "mle", var_est = "smash",
+smash.gaus.gen(x, st, y_var_est = "mle", z_var_est = "smash",
   family = "DaubExPhase", filter.number = 1, niters = 2, k = NULL)
 }
 \arguments{
@@ -16,9 +16,9 @@ smash.gaus.gen(x, st, method = "mle", var_est = "smash",
 
 \item{niters:}{number of iterations to estimate \sigma and mu}
 
-\item{method:}{'mle', 'moment', 'eb', 'huber','wls'}
+\item{y_var_est:}{'mle', 'moment', 'eb', 'huber','wls'}
 
-\item{var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
+\item{z_var_est:}{method to estimate variance: 'rmad', 'smash', 'default'}
 
 \item{k:}{parameter in huber m estimator}
 }

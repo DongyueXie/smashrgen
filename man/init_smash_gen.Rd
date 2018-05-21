@@ -13,7 +13,7 @@ init_smash_gen(x, ntri, ashp, dist_family)
 
 \item{ashp:}{whether apply ash firstly}
 
-\item{dist_family:}{family of ditribution: 'poisson','binomial'.}
+\item{dist_family:}{family of ditribution: 'poisson','binomial','poi_binom'.}
 }
 \value{
 initilized m,s,y

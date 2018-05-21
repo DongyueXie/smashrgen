@@ -8,19 +8,19 @@
 #' @param ashp: whether expand around ash posterior mean
 #' @param robust: whether set the highest resolution wavelet coeffs to 0
 #' @param verbose: whether print out the number of iterations to converge.
-#' @param dist_family: family of ditribution: 'poisson','binomial'.
+#' @param dist_family: family of ditribution: 'poisson','binomial','poi_binom'.
 #' @param ntri: Binomial number of trials
-#' @param method: method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.
-#' @param reall: whether return all estimates including mean and standard deviation(\sigma).
-#' @param var_est: method to estimate variance: 'rmad', 'smash', 'default'
+#' @param y_var_est: method to estimate \sigma or \sigma^2+st^2 if \sigma is unknown.
+#' @param re_all: whether return all estimates including mean and standard deviation(\sigma).
+#' @param z_var_est: method to estimate variance of intermidiate variable z: 'rmad', 'smash', 'default'
 #' @param k: parameter in huber m estimator
 #' @return estimated mean
 #' @export
 
-smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPhase',
+smash_gen=function(x,sigma=NULL,ntri=NULL,z_var_est='rmad',wave_family='DaubExPhase',
                    ashp=TRUE,verbose=FALSE,robust=FALSE,filter.number=1,
-                   niter=1,tol=1e-2,dist_family='poisson',method='smashu',
-                   reall=FALSE){
+                   niter=1,tol=1e-2,dist_family='poisson',y_var_est='smashu',
+                   re_all=FALSE){
   n=length(x)
   mu=c()
   s=c()
@@ -32,7 +32,7 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPha
   y0=ini$y0
   #set wavelet coeffs to 0?
   if(robust){
-    wds=wd(y0,family = family,filter.number = filter.number)
+    wds=wd(y0,family = wave_family,filter.number = filter.number)
     wtd=threshold(wds, levels = wds$nlevels-1,  policy="manual",value = Inf)
     y=rbind(y,wr(wtd))
   }else{
@@ -40,7 +40,7 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPha
   }
   for(i in 1:niter){
     vars=ifelse(s[i,]<0,0,s[i,])
-    mu.hat=smash.gaus(y[i,],sigma=sqrt(vars))#mu.hat is \mu_t+E(u_t|y)
+    mu.hat=smash.gaus(y[i,],sigma=sqrt(vars),family = wave_family,filter.number = filter.number)#mu.hat is \mu_t+E(u_t|y)
     mu=rbind(mu,mu.hat)
     munorm[i]=norm(mu.hat-mu[i,],'2')
     if(munorm[i]<tol){
@@ -57,14 +57,14 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPha
   }
   #give the final estimate
   if(is.null(sigma)){
-    if(method=='smashu'){
-      mu.hat=smash.gaus(y[i,])
-    }else if(method=='rmad'){
-      mu.hat=smash.gaus(y[i,],sigma=sst_est(y[i,],method,filter.number,wave_family),
+    if(y_var_est=='smashu'){
+      mu.hat=smash.gaus(y[i,],family = wave_family,filter.number = filter.number)
+    }else if(y_var_est=='rmad'){
+      mu.hat=smash.gaus(y[i,],sigma=sst_est(y[i,],y_var_est,filter.number,wave_family),
                         family=wave_family,filter.number=filter.number)
     }else{
       sgg=smash.gaus.gen(y[i,],sqrt(ifelse(s[i,]<0,1e-8,s[i,])),
-                         family=wave_family,method=method,var_est=var_est,filter.number=filter.number,k=k)
+                         family=wave_family,y_var_est=y_var_est,z_var_est=z_var_est,filter.number=filter.number,k=k)
       mu.hat=sgg$mu.hat
       sd.hat=sgg$sd.hat
     }
@@ -72,7 +72,7 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,var_est='smash',wave_family='DaubExPha
     mu.hat=smash.gaus(y[i,],sigma = sqrt(sigma^2+ifelse(s[i,]<0,1e-8,s[i,])),family=wave_family,filter.number=filter.number)
   }
   m.est=update_smash_gen(mu.hat,x,ntri,dist_family)$mt
-  if(reall&(method=='mle'|method=='eb'|method=='moment'|method=='wls'|method=='huber')){
+  if(re_all&(y_var_est=='mle'|y_var_est=='eb'|y_var_est=='moment'|y_var_est=='wls'|y_var_est=='huber')){
     return(list(m.est=m.est,sd.est=sd.hat))
   }else{
     return(m.est)

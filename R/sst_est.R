@@ -10,7 +10,7 @@ sst_est=function(x,method,filter.number=1,family="DaubExPhase"){
     sigma.est=rmad(x,filter.number=filter.number,family=family)
   }
   if(method=='smashu'){
-    sigma.est=sqrt(smash.gaus(x,v.est=T))
+    sigma.est=sqrt(smash.gaus(x,v.est=T,filter.number = filter.number,family = family))
   }
   return(sigma.est)
 }
