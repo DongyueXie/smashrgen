@@ -32,9 +32,7 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,z_var_est='rmad',wave_family='DaubExPh
   y0=ini$y0
   #set wavelet coeffs to 0?
   if(robust){
-    wds=wd(y0,family = wave_family,filter.number = filter.number)
-    wtd=threshold(wds, levels = wds$nlevels-1,  policy="manual",value = Inf)
-    y=rbind(y,wr(wtd))
+    y=rbind(y,fine_coeff_rm(y0,wave_family,filter.number))
   }else{
     y=rbind(y,y0)
   }
@@ -49,11 +47,21 @@ smash_gen=function(x,sigma=NULL,ntri=NULL,z_var_est='rmad',wave_family='DaubExPh
       }
       break
     }
+    if(verbose&i==niter){
+      message(sprintf('Algorithm does not converge after %i iterations',i))
+    }
     #update m and s_t
     upd=update_smash_gen(mu.hat,x,ntri,dist_family)
 
     s=rbind(s,upd$st)
-    y=rbind(y,upd$yt)
+
+    if(robust){
+      y=rbind(y,fine_coeff_rm(upd$yt,wave_family,filter.number))
+    }else{
+      y=rbind(y,upd$yt)
+    }
+
+
   }
   #give the final estimate
   if(is.null(sigma)){
