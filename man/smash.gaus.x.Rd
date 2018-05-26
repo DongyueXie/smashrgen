@@ -4,15 +4,17 @@
 \alias{smash.gaus.x}
 \title{smash gaus to deal with covariate effect.}
 \usage{
-smash.gaus.x(x, y, filter.number = 1, family = "DaubExPhase")
+smash.gaus.x(x, y, filter.number = 1, family = "DaubExPhase", homo = T)
 }
 \arguments{
 \item{x:}{covariate, n by p}
 
 \item{y:}{a vector of data}
+
+\item{homo:}{wether homoscedastic or heteroscedatic variance.}
 }
 \value{
-a list: mu.hat, beta.hat
+a list: mu.hat, beta.hat, se.hat
 }
 \description{
 smash gaus to deal with covariate effect.
