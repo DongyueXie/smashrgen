@@ -4,10 +4,10 @@
 \alias{smash.gaus.x}
 \title{smash gaus to deal with covariate effect.}
 \usage{
-smash.gaus.x(x, y, filter.number = 1, family = "DaubExPhase", homo = T)
+smash.gaus.x(X, y, filter.number = 1, family = "DaubExPhase", homo = T)
 }
 \arguments{
-\item{x:}{covariate, n by p}
+\item{X:}{covariate, n by p}
 
 \item{y:}{a vector of data}
 

@@ -2,9 +2,13 @@
 #' @export
 mse = function(x, y) mean((x - y)^2)
 
-#' l2 norm
+#' logit function
 #' @export
-l2norm = function(x) sum(x^2)
+logit=function(x) log(x/(1-x))
+
+#' logistics function
+#' @export
+logistic=function(x) exp(x)/(1+exp(x))
 
 #' mean integrated squared error
 #' @export
