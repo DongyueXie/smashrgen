@@ -4,7 +4,8 @@
 \alias{smash.gaus.x}
 \title{smash gaus to deal with covariate effect.}
 \usage{
-smash.gaus.x(X, y, filter.number = 1, family = "DaubExPhase", homo = T)
+smash.gaus.x(X, y, sigma = NULL, niter = 1, filter.number = 1,
+  family = "DaubExPhase", homo = T, tol = 0.01, verbose = F)
 }
 \arguments{
 \item{X:}{covariate, n by p}
@@ -12,6 +13,14 @@ smash.gaus.x(X, y, filter.number = 1, family = "DaubExPhase", homo = T)
 \item{y:}{a vector of data}
 
 \item{homo:}{wether homoscedastic or heteroscedatic variance.}
+
+\item{sigma:}{variance known or not, if not provided, will be estimated.}
+
+\item{niter:}{how many iterations to do, default is 1}
+
+\item{tol:}{stop criterion}
+
+\item{verbose:}{whether print out convergence information.}
 }
 \value{
 a list: mu.hat, beta.hat, se.hat
