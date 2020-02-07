@@ -6,7 +6,7 @@
 #'@param method smoothing method for Gaussian sequence, either 'smash' or 'ti.thresh'. When n is large, ti.thresh is much faster
 #'@param lambda If choose lik_expansion, for \tilde{\lambda}, either set it to x('mle') or smash.poiss('smoothing') output
 #'@param ash.pm If choose lik_expansion, whehter use ash posterior mean approxiamtion if x=0. If not x = x+eps.
-#'@param eps If choose lik_expansion, if x=0, set x = x + eps.
+#'@param eps If choose lik_expansion, if x=0, set x = x + eps. Either input a numerical value or 'estimate'. If estimate, eps = sum(x==1)/sum(x<=1)
 #'@param filter.number,family wavelet basis, see wavethresh pakcage for more details
 #'@param maxiter max iterations for estimating nugget effect
 #'@param tol tolerance to stop iterations.
@@ -18,7 +18,7 @@
 smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
                           method='ti.thresh',
                           lambda = 'smoothing',
-                          ash.pm=FALSE,eps=0.0001,
+                          ash.pm=FALSE,eps='estimate',
                           filter.number = 1,
                           family = "DaubExPhase",
                           maxiter=10,
@@ -52,6 +52,9 @@ smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
                      optmethod='mixSQP',pointmass=T)$result$PosteriorMean
           lambda_tilde[x<1] = x_pm[x<1]
         }else{
+          if(eps == 'estimate'){
+            eps = sum(x==1)/sum(x<=1)
+          }
           lambda_tilde[x<1] = (x[x<1]+eps)/s
         }
       }
