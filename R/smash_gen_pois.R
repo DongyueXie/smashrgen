@@ -3,7 +3,10 @@
 #'@param nugget nugget effect
 #'@param s Scale factor for Poisson observations: y~Pois(scale*lambda), can be a vector.
 #'@param transformation transformation of Poisson data, either 'vst' or 'lik_expansion'
+#'@param robust whether perform robust wavelet regression
+#'@param robust.q quantile to determine outliers
 #'@param method smoothing method for Gaussian sequence, either 'smash' or 'ti.thresh'. When n is large, ti.thresh is much faster
+#'@param nug.init init value of nugget effect, either a scalar or NULL
 #'@param lambda If choose lik_expansion, for \tilde{\lambda}, either set it to x('mle') or smash.poiss('smoothing') output
 #'@param ash.pm If choose lik_expansion, whehter use ash posterior mean approxiamtion if x=0. If not x = x+eps.
 #'@param eps If choose lik_expansion, if x=0, set x = x + eps. Either input a numerical value or 'estimate'. If estimate, eps = sum(x==1)/sum(x<=1)
@@ -17,7 +20,10 @@
 
 smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
                           method='ti.thresh',
-                          lambda = 'smoothing',
+                          lambda = 'mle',
+                          robust = T,
+                          robust.q = 0.99,
+                          nug.init = NULL,
                           ash.pm=FALSE,eps='estimate',
                           filter.number = 1,
                           family = "DaubExPhase",
@@ -35,7 +41,7 @@ smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
   n = length(x)
 
   if(transformation == 'vst'){
-    y = sqrt(x)/sqrt(s)
+    y = sqrt(x+3/8)/sqrt(s)
     st = rep(sqrt(0.25/s),n)
   }
 
@@ -68,14 +74,33 @@ smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
   }
 
 
+  if(robust){
+    win.size = round(sqrt(n)/2)*2+1
+    #win.size = round(log(n,2)/2)*2+1
+    y.wd = wd(y,filter.number,family,'station')
+    y.wd.coefJ = accessD(y.wd,level = log(n,2)-1)
+    y.rmed = runmed(y,win.size)
+
+    robust.z = qnorm(0.5+robust.q/2)
+
+    if(is.null(nugget)){
+      nug.init = uniroot(normaleqn,c(-1e6,1e6),y=y,mu=y.rmed,st=st)$root
+      nug.init = max(c(0,nug.init))
+      outlier.idx = which(abs(y-y.rmed)>=(robust.z*sqrt(st^2+nug.init)))
+    }else{
+      outlier.idx = which(abs(y-y.rmed)>=robust.z*sqrt(st^2+nugget))
+    }
+    st[outlier.idx] = abs((y.wd.coefJ)[outlier.idx] - median(y.wd.coefJ))
+  }
+
   # estimate nugget effect and estimate mu
 
-  nug.est = nugget
 
   if(is.null(nugget)){
-    fit = NuggetEst(y,st,nug.est,method,filter.number = filter.number,family = family,maxiter,tol)
+    fit = NuggetEst(y,st,nug.init,method,filter.number = filter.number,family = family,maxiter,tol)
     nug.est = fit$nug.est
   }else{
+    nug.est = nugget
     if(method=='smash'){
       fit = smash.gaus(y,sigma=sqrt(st^2+nug.est),
                        filter.number = filter.number,family = family,
@@ -91,7 +116,7 @@ smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
   mu.est.var = (fit$mu.est.var)[idx]
 
   if(transformation == 'vst'){
-    lambda.est = mu.est^2
+    lambda.est = mu.est^2-3/8
   }
   if(transformation == 'lik_expansion'){
     lambda.est = exp(mu.est+mu.est.var/2)
@@ -134,6 +159,7 @@ NuggetEst=function(y,st,nug.init=NULL,method,filter.number,family,maxiter,tol){
 
     # update nugget effect
     nug.est.new=uniroot(normaleqn,c(-1e6,1e6),y=y,mu=mu.est,st=st)$root
+    nug.est.new = max(c(0,nug.est.new))
 
     if(abs(nug.est.new - nug.est)<=tol){
       break
