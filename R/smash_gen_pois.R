@@ -116,7 +116,7 @@ smash.gen.pois = function(x,nugget=NULL,s=1,transformation = 'vst',
   mu.est.var = (fit$mu.est.var)[idx]
 
   if(transformation == 'vst'){
-    lambda.est = mu.est^2-3/8
+    lambda.est = mu.est^2-3/(8*s)
   }
   if(transformation == 'lik_expansion'){
     lambda.est = exp(mu.est+mu.est.var/2)
