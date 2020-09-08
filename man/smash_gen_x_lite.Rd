@@ -5,8 +5,8 @@
 \title{A light version for smashgen with covariate X, to make it fast.}
 \usage{
 smash_gen_x_lite(y, X, sigma = NULL, ntri = NULL,
-  wave_family = "DaubExPhase", filter.number = 1, dist_family = "poisson",
-  log_scale = FALSE, homo = F)
+  wave_family = "DaubExPhase", filter.number = 1,
+  dist_family = "poisson", log_scale = FALSE, homo = F)
 }
 \description{
 A light version for smashgen with covariate X, to make it fast.

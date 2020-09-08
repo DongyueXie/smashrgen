@@ -4,8 +4,9 @@
 \alias{smash_gen_lite}
 \title{A light version for smashgen, to make it fast.}
 \usage{
-smash_gen_lite(x, sigma = NULL, ntri = NULL, wave_family = "DaubExPhase",
-  filter.number = 1, dist_family = "poisson", log_scale = FALSE)
+smash_gen_lite(x, sigma = NULL, ntri = NULL,
+  wave_family = "DaubExPhase", filter.number = 1,
+  dist_family = "poisson", log_scale = FALSE)
 }
 \description{
 A light version for smashgen, to make it fast.

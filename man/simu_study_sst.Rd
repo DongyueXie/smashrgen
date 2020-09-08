@@ -4,8 +4,8 @@
 \alias{simu_study_sst}
 \title{Function to do comparisons among methods(total sd)}
 \usage{
-simu_study_sst(mu, st, sigma, niter = 100, seed = 12345, var_est = "rmad",
-  mu.out = T)
+simu_study_sst(mu, st, sigma, niter = 100, seed = 12345,
+  var_est = "rmad", mu.out = T)
 }
 \arguments{
 \item{mu:}{true mean}

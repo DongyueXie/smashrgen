@@ -4,11 +4,11 @@
 \alias{smash_gen}
 \title{A more general verison of smashgen that works for different data type and variance settings}
 \usage{
-smash_gen(x, X = NULL, sigma = NULL, ntri = NULL, z_var_est = "rmad",
-  wave_family = "DaubExPhase", ashp = TRUE, verbose = FALSE,
-  robust = FALSE, filter.number = 1, niter = 1, tol = 0.01,
-  dist_family = "poisson", y_var_est = "smashu", re_all = FALSE,
-  log_scale = FALSE)
+smash_gen(x, X = NULL, sigma = NULL, ntri = NULL,
+  z_var_est = "rmad", wave_family = "DaubExPhase", ashp = TRUE,
+  verbose = FALSE, robust = FALSE, filter.number = 1, niter = 1,
+  tol = 0.01, dist_family = "poisson", y_var_est = "smashu",
+  re_all = FALSE, log_scale = FALSE)
 }
 \arguments{
 \item{x:}{a vector of observations}

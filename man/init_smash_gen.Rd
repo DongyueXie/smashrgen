@@ -4,7 +4,7 @@
 \alias{init_smash_gen}
 \title{Initialize the input of smashgen algorithm}
 \usage{
-init_smash_gen(x, ntri, ashp, dist_family)
+init_smash_gen(x, ntri, ashp, dist_family, epsilon = 1e-04)
 }
 \arguments{
 \item{x:}{input data}
@@ -14,6 +14,8 @@ init_smash_gen(x, ntri, ashp, dist_family)
 \item{ashp:}{whether apply ash firstly}
 
 \item{dist_family:}{family of ditribution: 'poisson','binomial','poi_binom'.}
+
+\item{epsilon:}{adjustment if x/ntri=1. adjusted to be 1-epsilon.}
 }
 \value{
 initilized m,s,y
