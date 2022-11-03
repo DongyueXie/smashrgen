@@ -115,6 +115,7 @@ pois_smooth_split = function(x,
           break
         }
       }
+      #print(sigma2_new)
       sigma2 = sigma2_new
     }
 

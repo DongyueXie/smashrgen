@@ -27,3 +27,9 @@ fit = smash_gen_pois(x,maxiter = 1,method = 'smash',transformation='lik_expansio
 plot(x,col='grey80')
 lines(mu,col='grey50')
 lines(fit$posterior$mean_smooth)
+
+
+# simdata = sim_data_smooth(2,count_size=10)
+# out = simu_study_poisson_smooth(simdata,n_cores=1)
+
+
