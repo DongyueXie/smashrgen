@@ -9,7 +9,7 @@
 #'@param nug.init init value of nugget effect, either a scalar or NULL
 #'@param ash.pm If choose lik_expansion, whether use ash posterior mean approximation if x=0. If not x = x+eps.
 #'@param eps If choose lik_expansion, if x=0, set x = x + eps. Either input a numerical value or 'estimate'. If estimate, eps = sum(x==1)/sum(x<=1)
-#'@param filter.number,family wavelet basis, see wavethresh pakcage for more details
+#'@param filter.number,family wavelet basis, see wavethresh package for more details
 #'@param maxiter max iterations for estimating nugget effect
 #'@param tol tolerance to stop iterations.
 #'@return estimated smoothed lambda, estimated nugget effect.
@@ -23,7 +23,7 @@ smash_gen_pois = function(x,nugget=NULL,s=1,
                            robust = FALSE,
                            robust.q = 0.99,
                            nug.init = NULL,
-                           ash.pm=FALSE,
+                           ash.pm=TRUE,
                            eps='estimate',
                            filter.number = 1,
                            family = "DaubExPhase",
@@ -117,7 +117,10 @@ smash_gen_pois = function(x,nugget=NULL,s=1,
     lambda.est = exp(mu.est)
   }
 
-  return(list(lambda.est=lambda.est,mu.est=mu.est,nugget.est=nug.est))
+  return(list(posterior=list(mean_smooth=lambda.est,
+                             mean_latent_smooth = mu.est),
+              fitted_g=list(sigma2=nug.est)))
+  #return(list(lambda.est=lambda.est,mu.est=mu.est,nugget.est=nug.est))
 }
 
 

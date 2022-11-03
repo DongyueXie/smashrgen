@@ -14,10 +14,15 @@ pois_smooth_split(
   tol = 1e-05,
   filter.number = 1,
   family = "DaubExPhase",
+  wave_trans = "dwt",
+  ndwt_method = "smash",
   verbose = FALSE,
   printevery = 10,
   ebnm_params = list(mode = 0),
-  optim_method = "L-BFGS-B"
+  ashparam = list(),
+  optim_method = "L-BFGS-B",
+  convergence_criteria = "objabs",
+  W = NULL
 )
 }
 \arguments{
@@ -26,13 +31,20 @@ pois_smooth_split(
 \item{Eb_init, sigma2_init}{initial values of smooth mean and nugget effect.}
 
 \item{maxiter, tol}{max iteration and tolerance for stopping it.}
+
+\item{wave_trans}{dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`}
+
+\item{ndwt_method}{if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.}
+
+\item{convergence_criteria}{'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect}
 }
 \description{
 Smooth over-dispersed Poisson sequence via splitting method
 }
 \details{
 The problem is
-\deqn{x_i\sim Poisson(\exp(\mu_i)),}
+\deqn{x_i\sim Poisson(\lambda_i,}
+\deqn{\lambda_i = \exp(\mu_i)),}
 \deqn{\mu_i\sim N(b_i,\sigma^2),}
 \deqn{\b_i\sim g(.).}
 }

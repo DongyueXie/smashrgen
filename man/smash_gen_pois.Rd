@@ -13,7 +13,7 @@ smash_gen_pois(
   robust = FALSE,
   robust.q = 0.99,
   nug.init = NULL,
-  ash.pm = FALSE,
+  ash.pm = TRUE,
   eps = "estimate",
   filter.number = 1,
   family = "DaubExPhase",
@@ -42,7 +42,7 @@ smash_gen_pois(
 
 \item{eps}{If choose lik_expansion, if x=0, set x = x + eps. Either input a numerical value or 'estimate'. If estimate, eps = sum(x==1)/sum(x<=1)}
 
-\item{filter.number, family}{wavelet basis, see wavethresh pakcage for more details}
+\item{filter.number, family}{wavelet basis, see wavethresh package for more details}
 
 \item{maxiter}{max iterations for estimating nugget effect}
 
