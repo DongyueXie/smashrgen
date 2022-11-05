@@ -3,6 +3,7 @@
 #'@description This method first fit a smash poisson to the seq, then fit smash.gaus to the log estimation.
 #'@param x  data vector
 #'@import smashr
+#'@export
 
 smash_two_step = function(x){
   lx = smash.poiss(x,log=TRUE)
