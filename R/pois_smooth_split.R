@@ -24,6 +24,7 @@
 #'@import vebpm
 #'@import wavethresh
 #'@import smashr
+#'@export
 
 pois_smooth_split = function(x,
                              s = NULL,
@@ -77,6 +78,8 @@ pois_smooth_split = function(x,
   mu_pm = rep(0,n)
   mu_pv = rep(1/n,n)
 
+  sigma2_trace = c()
+
   for(iter in 1:maxiter){
     # get m, s^2
     #print(iter)
@@ -110,6 +113,7 @@ pois_smooth_split = function(x,
     # get sigma2
     if(est_sigma2){
       sigma2_new = mean(mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)
+      sigma2_trace = c(sigma2_trace,sigma2_new)
       if(convergence_criteria=='nugabs'){
         if(abs(sigma2_new-sigma2)<tol){
           break
@@ -143,7 +147,7 @@ pois_smooth_split = function(x,
                              var_mu = mu_pv,
                              mean_latent_smooth = Eb,
                              Var_latent_smooth = Eb2-Eb^2),
-              fitted_g = list(sigma2=sigma2),
+              fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
               obj_value=obj,
               H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2)))
   }else{
@@ -154,7 +158,7 @@ pois_smooth_split = function(x,
                                var_mu = mu_pv,
                                mean_latent_smooth = Eb,
                                Var_latent_smooth = Eb2-Eb^2),
-                fitted_g = list(sigma2=sigma2)))
+                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace)))
   }
 
   # return(list(Emean = exp(mu_pm+mu_pv/2),
