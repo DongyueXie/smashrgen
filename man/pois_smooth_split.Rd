@@ -7,7 +7,7 @@
 pois_smooth_split(
   x,
   s = NULL,
-  Eb_init = NULL,
+  Eb_init = "runmed",
   sigma2_init = NULL,
   est_sigma2 = TRUE,
   maxiter = 100,

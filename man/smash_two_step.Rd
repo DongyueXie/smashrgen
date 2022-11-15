@@ -4,7 +4,7 @@
 \alias{smash_two_step}
 \title{A two step method for smoothing Poisson seq}
 \usage{
-smash_two_step(x)
+smash_two_step(x, homoskedastic = FALSE)
 }
 \arguments{
 \item{x}{data vector}

@@ -7,8 +7,13 @@
 simu_study_poisson_smooth(
   simdata,
   save_data = TRUE,
-  method_list = c("vst", "lik_exp", "split_dwt", "split_ndwt", "smash", "smash_two_step"),
-  n_cores = 10,
+  method_list = c("vst_nug", "vst_smooth", "lik_exp_mle_nug", "lik_exp_mle_smooth",
+    "lik_exp_smashpoi_nug", "lik_exp_smashpoi_smooth", "lik_exp_iter_homo",
+    "lik_exp_iter_hetero", "split_runmed_dwt", "split_runmed_ndwt",
+    "split_smoothgaus_dwt", "split_smoothgaus_ndwt", "smash", "smash_two_step_homo",
+    "smash_two_step_hetero"),
+  smoother = "smash",
+  n_cores = 20,
   filter.number = 1,
   family = "DaubExPhase",
   maxiter = 100

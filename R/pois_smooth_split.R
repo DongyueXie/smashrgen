@@ -28,7 +28,7 @@
 
 pois_smooth_split = function(x,
                              s = NULL,
-                             Eb_init = NULL,
+                             Eb_init = 'runmed',
                              sigma2_init = NULL,
                              est_sigma2 = TRUE,
                              maxiter = 100,
@@ -45,6 +45,7 @@ pois_smooth_split = function(x,
                              convergence_criteria = 'objabs',
                              W=NULL){
 
+  t_start = Sys.time()
   n = length(x)
   if(is.null(s)){
     s = 1
@@ -52,8 +53,17 @@ pois_smooth_split = function(x,
   if(length(s)==1){
     s = rep(s,n)
   }
-  if(is.null(Eb_init)){
-    Eb = log(runmed(x/s,1 + 2 * min((n-1)%/% 2, ceiling(0.1*n)))+0.01)
+  const = sum(lfactorial(x))
+  if(!is.numeric(Eb_init)|length(Eb_init)!=n){
+    if(Eb_init=='runmed'){
+      Eb = log(runmed(x/s,1 + 2 * min((n-1)%/% 2, ceiling(0.1*n)))+0.01)
+    }
+    if(Eb_init == 'smash_poi'){
+      Eb = smash.poiss(x,log=TRUE) - log(s)
+    }
+    if(Eb_init == 'smooth_gaus'){
+      Eb = ti.thresh(log(1/s+x/s),method = 'rmad')
+    }
   }else{
     Eb = Eb_init
   }
@@ -82,18 +92,10 @@ pois_smooth_split = function(x,
 
   for(iter in 1:maxiter){
     # get m, s^2
-    #print(iter)
-    opt = optim(c(mu_pm,log(mu_pv)),
-                fn = pois_mean_GG_opt_obj,
-                gr = pois_mean_GG_opt_obj_gradient,
-                x=x,
-                s=s,
-                beta=Eb,
-                sigma2=sigma2,
-                n=n,
-                method = optim_method)
-    mu_pm = opt$par[1:n]
-    mu_pv = exp(opt$par[(n+1):(2*n)])
+    opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
+    mu_pm = opt$m
+    mu_pv = opt$v
+
     if(wave_trans=='dwt'){
       qb = smash_dwt(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_params=ebnm_params,W=W)
       Eb = qb$posterior$mean
@@ -126,7 +128,7 @@ pois_smooth_split = function(x,
 
     # calc obj
     if(convergence_criteria=='objabs'){
-      obj[iter+1] = pois_smooth_split_obj(x,s,mu_pm,mu_pv,Eb,Eb2,sigma2,qb$dKL)
+      obj[iter+1] = pois_smooth_split_obj(x,s,mu_pm,mu_pv,Eb,Eb2,sigma2,qb$dKL,const)
       if(verbose){
         if(iter%%printevery==0){
           print(paste("Done iter",iter,"obj =",obj[iter+1]))
@@ -139,6 +141,7 @@ pois_smooth_split = function(x,
     }
 
   }
+  t_end = Sys.time()
   if(wave_trans=='dwt'){
       return(list(posterior=list(mean_smooth = exp(Eb),
                              mean_lambda=exp(mu_pm+mu_pv/2),
@@ -149,7 +152,8 @@ pois_smooth_split = function(x,
                              Var_latent_smooth = Eb2-Eb^2),
               fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
               obj_value=obj,
-              H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2)))
+              H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2),
+              run_time = difftime(t_end,t_start,units='secs')))
   }else{
     return(list(posterior=list(mean_smooth = exp(Eb),
                                mean_lambda=exp(mu_pm+mu_pv/2),
@@ -158,21 +162,12 @@ pois_smooth_split = function(x,
                                var_mu = mu_pv,
                                mean_latent_smooth = Eb,
                                Var_latent_smooth = Eb2-Eb^2),
-                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace)))
+                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
+                run_time = difftime(t_end,t_start,units='secs')))
   }
-
-  # return(list(Emean = exp(mu_pm+mu_pv/2),
-  #             Vmean = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
-  #             Emu=mu_pm,
-  #             Vmu=mu_pv,
-  #             Eb=Eb,
-  #             Eb2=Eb2,
-  #             sigma2=sigma2,
-  #             obj=obj,
-  #             H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2)))
 }
 
-pois_smooth_split_obj = function(x,s,m,s2,Eb,Eb2,sigma2,KLb){
-  return(sum(x*m-s*exp(m+s2/2)+log(s2)/2-log(sigma2)/2-(m^2+s2-2*m*Eb+Eb2)/2/sigma2)+KLb)
+pois_smooth_split_obj = function(x,s,m,s2,Eb,Eb2,sigma2,KLb,const){
+  return(sum(x*m-s*exp(m+s2/2)+log(s2)/2-log(sigma2)/2-(m^2+s2-2*m*Eb+Eb2)/2/sigma2)+KLb-const)
 }
 
