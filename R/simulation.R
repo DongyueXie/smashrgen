@@ -50,7 +50,9 @@ sim_data_smooth = function(n_simu,n=2^9,snr=3,count_size,smooth_func='blocks',se
 #'@import parallel
 #'@import vebpm
 #'@import smashr
+#'
 #'@export
+
 simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                      method_list=c('vst_nug',
                                                    'vst_nug_top',
@@ -61,16 +63,13 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                                    'lik_exp_smashpoi_nug',
                                                    'lik_exp_smashpoi_nug_top',
                                                    'lik_exp_smashpoi_smooth',
-                                                   #'lik_exp_iter_homo',
-                                                   #'lik_exp_iter_hetero',
                                                    'split_runmed_dwt',
                                                    'split_runmed_ndwt',
                                                    'split_runmed_ndwt_top',
                                                    'split_log1px_ndwt',
                                                    'split_runmed_ndwt_fix_nug',
                                                    'split_log1px_ndwt_fix_nug',
-                                                   #'split_smoothgaus_dwt',
-                                                   #'split_smoothgaus_ndwt',
+                                                   'split_true',
                                                    'smash_two_step_homo',
                                                    'smash_two_step_hetero',
                                                    'smash'),
@@ -177,6 +176,11 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
       fitted_model$split_log1px_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='log1px',
                                                              filter.number = filter.number,family = family,maxiter=maxiter,
                                                              est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
+    if('split_true'%in%method_list){
+      fitted_model$split_true = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init=simdata$b,
+                                                      filter.number = filter.number,family = family,maxiter=maxiter,
+                                                      est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
     if('split_runmed_ndwt_fix_nug'%in%method_list){
       fitted_model$split_runmed_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='runmed',
