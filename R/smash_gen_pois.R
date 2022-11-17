@@ -24,6 +24,7 @@ smash_gen_pois = function(x,
                           est_nugget = TRUE,
                           transformation = 'lik_expan',
                           lik_expan_at ='mle',
+                          nug.est.limit = 1,
                           smoother='smash',
                           robust = FALSE,
                           robust.q = 0.99,
@@ -107,7 +108,7 @@ smash_gen_pois = function(x,
 
 
   if(est_nugget){
-    fit = nugget_est(y,st,nug.init,smoother,filter.number = filter.number,family = family,est_nugget_maxiter,est_nugget_tol)
+    fit = nugget_est(y,st,nug.init,nug.est.limit,smoother,filter.number = filter.number,family = family,est_nugget_maxiter,est_nugget_tol)
     nug.est = fit$nug.est
     mu.est = (fit$mu.res)[idx]
   }else{
@@ -140,19 +141,27 @@ normaleqn_nugget=function(nug,y,mu,st){
   return(sum((y-mu)^2/(nug+st^2)^2)-sum(1/(nug+st^2)))
 }
 
-nugget_est=function(y,st,nug.init=NULL,method,filter.number,family,maxiter,tol){
+nugget_est=function(y,st,nug.init=NULL,nug.est.limit,method,filter.number,family,maxiter,tol){
   #initialize nugget effect sigma^2
   n=length(y)
+  if(nug.est.limit<1){
+    top.idx = order(st,decreasing = F)[1:round(n*nug.est.limit)]
+  }else{
+    top.idx = 1:n
+  }
+
+
   if(is.null(nug.init)){
     x.m=c(y[n],y,y[1])
     st.m=c(st[n],st,st[1])
-    nug.init = ((x.m[2:n]-x.m[3:(n+1)])^2+(x.m[2:n]-x.m[1:(n-1)])^2-2*st.m[2:n]^2-st.m[1:(n-1)]^2-st.m[3:(n+1)]^2)/4
-    nug.init = nug.init[nug.init>0&nug.init<var(y)]
-    nug.init = median(nug.init)
+    nug.init = ((x.m[2:(n+1)]-x.m[3:(n+2)])^2+(x.m[2:(n+1)]-x.m[1:(n)])^2-2*st.m[2:(n+1)]^2-st.m[1:(n)]^2-st.m[3:(n+2)]^2)/4
+    #nug.init = ((x.m[2:n]-x.m[3:(n+1)])^2+(x.m[2:n]-x.m[1:(n-1)])^2-2*st.m[2:n]^2-st.m[1:(n-1)]^2-st.m[3:(n+1)]^2)/4
+    #print(length(nug.init))
+    #print(nug.init)
+    nug.init = mean(nug.init[top.idx])
+    nug.init = max(0,nug.init)
   }
   #given st and nug to estimate mean
-
-
   nug.est = nug.init
   for(iter in 1:maxiter){
 
@@ -170,7 +179,7 @@ nugget_est=function(y,st,nug.init=NULL,method,filter.number,family,maxiter,tol){
     }
 
     # update nugget effect
-    nug.est.new=uniroot(normaleqn_nugget,c(-1e6,1e6),y=y,mu=mu.est,st=st)$root
+    nug.est.new=uniroot(normaleqn_nugget,c(-1e6,1e6),y=y[top.idx],mu=mu.est[top.idx],st=st[top.idx])$root
     nug.est.new = max(c(0,nug.est.new))
 
 

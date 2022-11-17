@@ -3,7 +3,6 @@
 export(ispowerof2)
 export(pois_smooth_split)
 export(sim_data_smooth)
-export(simu_study_poisson_smooth)
 export(smash_dwt)
 export(smash_gen_pois)
 export(smash_gen_pois_iterative)

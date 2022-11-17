@@ -43,7 +43,8 @@ pois_smooth_split = function(x,
                              ashparam = list(),
                              optim_method='L-BFGS-B',
                              convergence_criteria = 'objabs',
-                             W=NULL){
+                             W=NULL,
+                             sigma2_est_top = NULL){
 
   t_start = Sys.time()
   n = length(x)
@@ -63,6 +64,9 @@ pois_smooth_split = function(x,
     }
     if(Eb_init == 'smooth_gaus'){
       Eb = ti.thresh(log(1/s+x/s),method = 'rmad')
+    }
+    if(Eb_init == 'log1px'){
+      Eb = log(1/s+x/s)
     }
   }else{
     Eb = Eb_init
@@ -85,8 +89,14 @@ pois_smooth_split = function(x,
      obj = -Inf
   }
 
+  if(!is.null(sigma2_est_top)&convergence_criteria == 'nugabs'&est_sigma2){
+    top_idx = order(x,decreasing = TRUE)[1:round(n*sigma2_est_top)]
+  }
+
   mu_pm = rep(0,n)
   mu_pv = rep(1/n,n)
+
+  Eb_old = Eb
 
   sigma2_trace = c()
 
@@ -114,7 +124,11 @@ pois_smooth_split = function(x,
     }
     # get sigma2
     if(est_sigma2){
-      sigma2_new = mean(mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)
+      if(convergence_criteria=='nugabs'&!is.null(sigma2_est_top)){
+        sigma2_new = mean((mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)[top_idx])
+      }else{
+        sigma2_new = mean(mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)
+      }
       sigma2_trace = c(sigma2_trace,sigma2_new)
       if(convergence_criteria=='nugabs'){
         if(abs(sigma2_new-sigma2)<tol){
@@ -123,6 +137,13 @@ pois_smooth_split = function(x,
       }
       #print(sigma2_new)
       sigma2 = sigma2_new
+    }else{
+      if(convergence_criteria=='nugabs'){
+        if(sqrt(mean((Eb-Eb_old)^2))<tol){
+          break
+        }
+        Eb_old = Eb
+      }
     }
 
 

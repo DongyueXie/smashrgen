@@ -22,7 +22,7 @@ sim_data_smooth(
 
 \item{count_size}{max of exp(b)}
 
-\item{smooth_func}{blocks, bumps, heavi,doppler}
+\item{smooth_func}{cblocks, sblocks, heavi, angles, bursts, spike}
 }
 \value{
 a list of

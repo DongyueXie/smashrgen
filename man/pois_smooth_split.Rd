@@ -22,7 +22,8 @@ pois_smooth_split(
   ashparam = list(),
   optim_method = "L-BFGS-B",
   convergence_criteria = "objabs",
-  W = NULL
+  W = NULL,
+  sigma2_est_top = NULL
 )
 }
 \arguments{

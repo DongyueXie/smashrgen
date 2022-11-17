@@ -11,6 +11,7 @@ smash_gen_pois(
   est_nugget = TRUE,
   transformation = "lik_expan",
   lik_expan_at = "mle",
+  nug.est.limit = 1,
   smoother = "smash",
   robust = FALSE,
   robust.q = 0.99,

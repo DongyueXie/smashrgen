@@ -3,7 +3,7 @@
 #'@param n length of Poisson seq
 #'@param snr signal  to noise ratio
 #'@param count_size max of exp(b)
-#'@param smooth_func blocks, bumps, heavi,doppler
+#'@param smooth_func cblocks, sblocks, heavi, angles, bursts, spike
 #'@return a list of
 #'  \item{X:}{data}
 #'  \item{L:}{mean}
@@ -12,8 +12,28 @@
 #'@export
 sim_data_smooth = function(n_simu,n=2^9,snr=3,count_size,smooth_func='blocks',seed=12345){
   set.seed(seed)
-  b = DJ.EX(n=n,signal=1,noisy=FALSE,plotfn = FALSE)[[smooth_func]]
-  b = b - min(b)
+  #b = DJ.EX(n=n,signal=1,noisy=FALSE,plotfn = FALSE)[[smooth_func]]
+  t = seq(0,1,length.out = n)
+  if(smooth_func=='sblocks'){
+    b = sblocks.f(t)
+  }
+  if(smooth_func=='cblocks'){
+    b = cblocks.f(t)
+  }
+  if(smooth_func=='heavi'){
+    b = heavi.f(t)
+  }
+  if(smooth_func=='angles'){
+    b = angles.f(t)
+  }
+  if(smooth_func=='bursts'){
+    b = bursts.f(t)
+  }
+  if(smooth_func=='spike'){
+    b = spike.f(t)
+  }
+
+  #b = b - min(b)
   b = b/(max(b)/log(count_size))
   sigma2 = var(b)/snr
   X = matrix(nrow=n_simu,ncol=n)
@@ -33,24 +53,32 @@ sim_data_smooth = function(n_simu,n=2^9,snr=3,count_size,smooth_func='blocks',se
 #'@export
 simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                      method_list=c('vst_nug',
+                                                   'vst_nug_top',
                                                    'vst_smooth',
                                                    'lik_exp_mle_nug',
+                                                   'lik_exp_mle_nug_top',
                                                    'lik_exp_mle_smooth',
                                                    'lik_exp_smashpoi_nug',
+                                                   'lik_exp_smashpoi_nug_top',
                                                    'lik_exp_smashpoi_smooth',
-                                                   'lik_exp_iter_homo',
-                                                   'lik_exp_iter_hetero',
+                                                   #'lik_exp_iter_homo',
+                                                   #'lik_exp_iter_hetero',
                                                    'split_runmed_dwt',
                                                    'split_runmed_ndwt',
-                                                   'split_smoothgaus_dwt',
-                                                   'split_smoothgaus_ndwt',
-                                                   'smash',
+                                                   'split_runmed_ndwt_top',
+                                                   'split_log1px_ndwt',
+                                                   'split_runmed_ndwt_fix_nug',
+                                                   'split_log1px_ndwt_fix_nug',
+                                                   #'split_smoothgaus_dwt',
+                                                   #'split_smoothgaus_ndwt',
                                                    'smash_two_step_homo',
-                                                   'smash_two_step_hetero'),
+                                                   'smash_two_step_hetero',
+                                                   'smash'),
                                      smoother = 'smash',
                                      n_cores = 20,
                                      filter.number = 1,
                                      family='DaubExPhase',
+                                     nug.est.limit = 0.2,
                                      maxiter=100){
   n_simu = nrow(simdata$X)
   n = ncol(simdata$X)
@@ -65,6 +93,12 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
       fitted_model$vst_nug = res_vst_nug
     }
 
+    if('vst_nug_top'%in%method_list){
+      fitted_model$vst_nug_top = try(smash_gen_pois(simdata$X[i,],transformation='vst',smoother=smoother,
+                                       filter.number = filter.number,family = family,
+                                       est_nugget_maxiter = maxiter,est_nugget = TRUE,nug.est.limit=nug.est.limit))
+    }
+
     if('vst_smooth'%in%method_list){
       res_vst_smooth = try(smash_gen_pois(simdata$X[i,],transformation='vst',smoother=smoother,
                                        filter.number = filter.number,family = family,est_nugget_maxiter = maxiter,est_nugget = FALSE))
@@ -76,6 +110,12 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                    filter.number = filter.number,family = family,est_nugget_maxiter=maxiter,lik_expan_at = 'mle',est_nugget = TRUE))
       fitted_model$lik_exp_mle_nug = res_lik_exp_mle_nug
     }
+    if('lik_exp_mle_nug_top'%in%method_list){
+      fitted_model$lik_exp_mle_nug_top = try(smash_gen_pois(simdata$X[i,],transformation='lik_expan',smoother=smoother,
+                                                            filter.number = filter.number,family = family,
+                                                            est_nugget_maxiter=maxiter,
+                                                            lik_expan_at = 'mle',est_nugget = TRUE,nug.est.limit=nug.est.limit))
+    }
     if('lik_exp_mle_smooth'%in%method_list){
       res_lik_exp_mle_smooth = try(smash_gen_pois(simdata$X[i,],transformation='lik_expan',smoother=smoother,
                                                filter.number = filter.number,family = family,est_nugget_maxiter=maxiter,lik_expan_at = 'mle',est_nugget = FALSE))
@@ -85,6 +125,13 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
       res_lik_exp_smashpoi_nug = try(smash_gen_pois(simdata$X[i,],transformation='lik_expan',smoother=smoother,
                                                filter.number = filter.number,family = family,est_nugget_maxiter=maxiter,lik_expan_at = 'smash_poi',est_nugget = TRUE))
       fitted_model$lik_exp_smashpoi_nug = res_lik_exp_smashpoi_nug
+    }
+    if('lik_exp_smashpoi_nug_top'%in%method_list){
+      fitted_model$lik_exp_smashpoi_nug_top = try(smash_gen_pois(simdata$X[i,],transformation='lik_expan',smoother=smoother,
+                                                                 filter.number = filter.number,
+                                                                 family = family,est_nugget_maxiter=maxiter,
+                                                                 lik_expan_at = 'smash_poi',est_nugget = TRUE,
+                                                                 nug.est.limit=nug.est.limit))
     }
     if('lik_exp_smashpoi_smooth'%in%method_list){
       res_lik_exp_smashpoi_smooth = try(smash_gen_pois(simdata$X[i,],transformation='lik_expan',smoother=smoother,
@@ -116,6 +163,25 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
     if('split_runmed_ndwt'%in%method_list){
       fitted_model$split_runmed_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='runmed',
                                                              filter.number = filter.number,family = family,maxiter=maxiter))
+    }
+    if('split_runmed_ndwt_top'%in%method_list){
+      fitted_model$split_runmed_ndwt_top = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='runmed',
+                                                             filter.number = filter.number,family = family,maxiter=maxiter,
+                                                             sigma2_est_top = nug.est.limit))
+    }
+    if('split_log1px_ndwt'%in%method_list){
+      fitted_model$split_log1px_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='log1px',
+                                                                 filter.number = filter.number,family = family,maxiter=maxiter))
+    }
+    if('split_log1px_ndwt_fix_nug'%in%method_list){
+      fitted_model$split_log1px_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='log1px',
+                                                             filter.number = filter.number,family = family,maxiter=maxiter,
+                                                             est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
+    if('split_runmed_ndwt_fix_nug'%in%method_list){
+      fitted_model$split_runmed_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='runmed',
+                                                                     filter.number = filter.number,family = family,maxiter=maxiter,
+                                                                     est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
     if('split_smoothgaus_ndwt'%in%method_list){
       fitted_model$split_smoothgaus_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Eb_init='smooth_gaus',
@@ -183,3 +249,67 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
     return(res)
   }
 }
+
+
+
+
+
+spike.f <- function (t)
+  0.75 * exp(-500   * (t - 0.23)^2) +
+  1.5  * exp(-2000  * (t - 0.33)^2) +
+  3    * exp(-8000  * (t - 0.47)^2) +
+  2.25 * exp(-16000 * (t - 0.69)^2) +
+  0.5  * exp(-32000 * (t - 0.83)^2)
+
+
+angles.f <- function (t) {
+  s <- ((2 * t + 0.5) * (t <= 0.15)) +
+    ((-12 * (t - 0.15) + 0.8) * (t > 0.15 & t <= 0.2)) +
+    0.2 * (t > 0.2 & t <= 0.5) +
+    ((6 * (t - 0.5) + 0.2) * (t > 0.5 & t <= 0.6)) +
+    ((-10 * (t - 0.6) + 0.8) * (t > 0.6 & t <= 0.65)) +
+    ((-0.5 * (t - 0.65) + 0.3) * (t > 0.65 & t <= 0.85)) +
+    ((2 * (t - 0.85) + 0.2) * (t > 0.85))
+  f <- 3/5 * ((5/(max(s) - min(s))) * s - 1.6) - 0.0419569
+  return(f)
+}
+
+
+cblocks.f <- function (t) {
+  pos <- c(0.1,0.13,0.15,0.23,0.25,0.4,0.44,0.65,0.76,0.78,0.81)
+  hgt <- 2.88/5 * c(4,-5,3,-4,5,-4.2,2.1,4.3,-3.1,2.1,-4.2)
+  f   <- rep(0,length(t))
+  for (i in 1:length(pos))
+    f <- f + (1 + sign(t - pos[i])) * (hgt[i]/2)
+  f[f < 0] <- 0
+  return(f)
+}
+
+sblocks.f <- function (t) {
+
+  n = length(t)
+  return(c(rep(0,n/8),rep(1.5,n/4),rep(0,n/4),rep(3,n/4),rep(0,n/8)))
+}
+
+
+# This defines the "Heavisine" signal.
+heavi.f <- function (t) {
+  heavi <- 4 * sin(4 * pi * t) - sign(t - 0.3) - sign(0.72 - t)
+  f <- heavi/sqrt(var(heavi)) * 1 * 2.99/3.366185
+  f <- f - min(f)
+  return(f)
+}
+
+# This defines the "Bursts" signal.
+bursts.f <- function (t) {
+  I1 <- exp(-(abs(t - 0.2)/0.01)^1.2) * (t <= 0.2) +
+    exp(-(abs(t - 0.2)/0.03)^1.2) * (t > 0.2)
+  I2 <- exp(-(abs(t - 0.3)/0.01)^1.2) * (t <= 0.3) +
+    exp(-(abs(t - 0.3)/0.03)^1.2) * (t > 0.3)
+  I3 <- exp(-(abs(t - 0.4)/0.01)^1.2) * (t <= 0.4) +
+    exp(-(abs(t - 0.4)/0.03)^1.2) * (t > 0.4)
+  f  <- 2.99/4.51804 * (4*I1 + 3*I2 + 4.5*I3)
+  return(f)
+}
+
+
