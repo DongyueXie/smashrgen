@@ -19,7 +19,6 @@ pois_smooth_split(
   verbose = FALSE,
   printevery = 10,
   ebnm_params = list(mode = 0),
-  ashparam = list(),
   optim_method = "L-BFGS-B",
   convergence_criteria = "objabs",
   W = NULL,

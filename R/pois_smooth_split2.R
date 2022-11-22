@@ -40,7 +40,6 @@ pois_smooth_split2 = function(x,
                              verbose=FALSE,
                              printevery = 10,
                              ebnm_params=list(mode=0),
-                             ashparam = list(),
                              optim_method='L-BFGS-B',
                              convergence_criteria = 'objabs',
                              W=NULL,
@@ -103,7 +102,7 @@ pois_smooth_split2 = function(x,
     }
     if(wave_trans=='ndwt'){
       if(ndwt_method=='smash'){
-        qb = smash.gaus(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ashparam=ashparam,post.var = TRUE)
+        qb = smash.gaus(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_param=ebnm_params,post.var = TRUE)
         Eb = qb$mu.est
         Eb2 = Eb^2+qb$mu.est.var
       }
