@@ -90,7 +90,7 @@ pois_smooth_split2 = function(x,
   #mu_pm = rep(0,n)
   mu_pv = rep(1/n,n)
 
-  Eb_old = Eb
+  Eb_old = Inf
 
   sigma2_trace = c()
 
