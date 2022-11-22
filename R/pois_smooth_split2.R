@@ -1,7 +1,7 @@
 #'@title Smooth over-dispersed Poisson sequence via splitting method
 #'@param x data vector
 #'@param maxiter,tol max iteration and tolerance for stopping it.
-#'@param Eb_init,sigma2_init initial values of smooth mean and nugget effect.
+#'@param Emu_init,sigma2_init initial values of latent variable and nugget effect.
 #'@param wave_trans dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`
 #'@param ndwt_method if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.
 #'@param convergence_criteria 'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect
@@ -26,7 +26,7 @@
 #'@import smashr
 #'@export
 
-pois_smooth_split2 = function(x,
+pois_smooth_split = function(x,
                              s = NULL,
                              Emu_init = 'runmed',
                              sigma2_init = NULL,
@@ -43,7 +43,8 @@ pois_smooth_split2 = function(x,
                              optim_method='L-BFGS-B',
                              convergence_criteria = 'objabs',
                              W=NULL,
-                             sigma2_est_top = NULL){
+                             sigma2_est_top = NULL,
+                             plot_updates = FALSE){
 
   t_start = Sys.time()
   n = length(x)
@@ -56,14 +57,18 @@ pois_smooth_split2 = function(x,
   const = sum(lfactorial(x))
   if(!is.numeric(Emu_init)|length(Emu_init)!=n){
     if(Emu_init == 'smash_poi'){
-      mu_pm = smash.poiss(x,log=TRUE) - log(s)
+      Emu_init = smash.poiss(x,log=TRUE) - log(s)
+    }else if(Emu_init == 'log1px'){
+      Emu_init = log(1/s+x/s)
+    }else if(Emu_init == 'runmed'){
+      Emu_init = runmed(x/s,k=7)
+    }else{
+      stop('unknown init of mu')
     }
-    if(Emu_init == 'log1px'){
-      mu_pm = log(1/s+x/s)
-    }
-  }else{
-    mu_pm = Emu_init
   }
+
+  mu_pm = Emu_init
+
   if(is.null(sigma2_init)){
     sigma2 = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
   }else{
@@ -111,6 +116,12 @@ pois_smooth_split2 = function(x,
         Eb2 = Eb^2
       }
     }
+
+    if(plot_updates){
+      plot(mu_pm,col='grey80',ylim=range(Emu_init))
+      lines(Eb)
+    }
+
 
     # get m, s^2
     opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)

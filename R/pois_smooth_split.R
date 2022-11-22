@@ -24,9 +24,8 @@
 #'@import vebpm
 #'@import wavethresh
 #'@import smashr
-#'@export
 
-pois_smooth_split = function(x,
+pois_smooth_split_init_b = function(x,
                              s = NULL,
                              Eb_init = 'runmed',
                              sigma2_init = NULL,
