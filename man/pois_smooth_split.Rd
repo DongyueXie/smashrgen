@@ -8,6 +8,8 @@ pois_smooth_split(
   x,
   s = NULL,
   Emu_init = "runmed",
+  ash_pm_init_for0 = TRUE,
+  eps_for0 = "estimate",
   sigma2_init = NULL,
   est_sigma2 = TRUE,
   maxiter = 100,

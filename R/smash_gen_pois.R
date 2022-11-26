@@ -2,7 +2,7 @@
 #'@param x observed Poisson sequence
 #'@param s Scale factor for Poisson observations: y~Pois(scale*lambda), can be a vector.
 #'@param transformation transformation of Poisson data, either 'vst' or 'lik_expan'; 'vst' for variance stabilizing transformation; 'lik_expansion' for likelihood expansion
-#'@param lik_expan_at if transformation='lik_expan', where to expand it? Can be mle_pm0, or smash_poi
+#'@param lik_expan_at if transformation='lik_expan', where to expand it? Can be logx, or smash_poi
 #'@param robust whether perform robust wavelet regression
 #'@param robust.q quantile to determine outliers
 #'@param smoother smoothing method for Gaussian sequence, either 'smash' or 'ti.thresh'. When n is large, ti.thresh is much faster
@@ -23,7 +23,7 @@ smash_gen_pois = function(x,
                           nug.init = NULL,
                           est_nugget = TRUE,
                           transformation = 'lik_expan',
-                          lik_expan_at ='mle',
+                          lik_expan_at ='logx',
                           nug.est.limit = 1,
                           smoother='smash',
                           robust = FALSE,
@@ -56,7 +56,7 @@ smash_gen_pois = function(x,
 
   if(transformation == 'lik_expan'){
 
-    if(lik_expan_at=='mle'){
+    if(lik_expan_at=='logx'){
       lambda_tilde = x/s
       if(min(x)<1){
         if(ash_pm_init_for0){

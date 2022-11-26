@@ -29,6 +29,8 @@
 pois_smooth_split = function(x,
                              s = NULL,
                              Emu_init = 'runmed',
+                             ash_pm_init_for0 = TRUE,
+                             eps_for0 = 'estimate',
                              sigma2_init = NULL,
                              est_sigma2 = TRUE,
                              maxiter = 100,
@@ -58,12 +60,21 @@ pois_smooth_split = function(x,
   if(!is.numeric(Emu_init)|length(Emu_init)!=n){
     if(Emu_init == 'smash_poi'){
       Emu_init = smash.poiss(x,log=TRUE) - log(s)
-    }else if(Emu_init == 'log1px'){
-      Emu_init = log(1/s+x/s)
-    }else if(Emu_init == 'runmed'){
-      Emu_init = runmed(log(1/s+x/s),k=7)
+    }else if(Emu_init == 'logx'){
+      Emu_init = log(x/s)
+      if(min(x)<1){
+        if(ash_pm_init_for0){
+          x_pm = ash_pois(x,scale=s,link='identity')$result$PosteriorMean
+          Emu_init[x<1] = log(x_pm[x<1])
+        }else{
+          if(eps_for0 == 'estimate'){
+            eps_for0 = sum(round(x)==1)/sum(round(x)<=1)+0.1
+          }
+          Emu_init[x<1] = log((x[x<1]+eps_for0)/s)
+        }
+      }
     }else{
-      stop('unknown init of mu')
+      stop('unknown init method of mu')
     }
   }
 

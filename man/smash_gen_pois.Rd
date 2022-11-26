@@ -10,7 +10,7 @@ smash_gen_pois(
   nug.init = NULL,
   est_nugget = TRUE,
   transformation = "lik_expan",
-  lik_expan_at = "mle",
+  lik_expan_at = "logx",
   nug.est.limit = 1,
   smoother = "smash",
   robust = FALSE,
@@ -32,7 +32,7 @@ smash_gen_pois(
 
 \item{transformation}{transformation of Poisson data, either 'vst' or 'lik_expan'; 'vst' for variance stabilizing transformation; 'lik_expansion' for likelihood expansion}
 
-\item{lik_expan_at}{if transformation='lik_expan', where to expand it? Can be mle_pm0, or smash_poi}
+\item{lik_expan_at}{if transformation='lik_expan', where to expand it? Can be logx, or smash_poi}
 
 \item{smoother}{smoothing method for Gaussian sequence, either 'smash' or 'ti.thresh'. When n is large, ti.thresh is much faster}
 

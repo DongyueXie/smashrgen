@@ -33,7 +33,7 @@ lines(fit$posterior$mean_smooth)
 fit = smash_gen_pois_iterative(x,maxiter = 10)
 
 
-simdata = sim_data_smooth(2,count_size=10,n=128)
+simdata = sim_data_smooth(1,count_size=10,n=128)
 out = simu_study_poisson_smooth(simdata,n_cores=1)
 
 
