@@ -6,10 +6,11 @@
 \usage{
 sim_data_smooth(
   n_simu,
-  n = 2^9,
+  n = 1024,
   snr = 3,
   count_size,
-  smooth_func = "blocks",
+  min_lambda = 0.01,
+  smooth_func = "sblocks",
   seed = 12345
 )
 }

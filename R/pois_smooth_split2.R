@@ -61,7 +61,7 @@ pois_smooth_split = function(x,
     }else if(Emu_init == 'log1px'){
       Emu_init = log(1/s+x/s)
     }else if(Emu_init == 'runmed'){
-      Emu_init = runmed(x/s,k=7)
+      Emu_init = runmed(log(1/s+x/s),k=7)
     }else{
       stop('unknown init of mu')
     }
@@ -70,10 +70,10 @@ pois_smooth_split = function(x,
   mu_pm = Emu_init
 
   if(is.null(sigma2_init)){
-    sigma2 = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
-  }else{
-    sigma2 = sigma2_init
+    sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
   }
+  sigma2 = sigma2_init
+
 
   if(wave_trans=='ndwt'){
     convergence_criteria = 'nugabs'

@@ -10,7 +10,7 @@
 #'  \item{other imputs:}{sigma2,snr, ...}
 #'@import wavethresh
 #'@export
-sim_data_smooth = function(n_simu,n=2^9,snr=3,count_size,smooth_func='blocks',seed=12345){
+sim_data_smooth = function(n_simu,n=1024,snr=3,count_size,min_lambda = 0.01,smooth_func='sblocks',seed=12345){
   set.seed(seed)
   #b = DJ.EX(n=n,signal=1,noisy=FALSE,plotfn = FALSE)[[smooth_func]]
   t = seq(0,1,length.out = n)
@@ -34,16 +34,18 @@ sim_data_smooth = function(n_simu,n=2^9,snr=3,count_size,smooth_func='blocks',se
   }
 
   #b = b - min(b)
-  b = b/(max(b)/log(count_size))
-  sigma2 = var(b)/snr
+  b = b/(max(b)/count_size)
+  b[b<min_lambda] = min_lambda
+  mu = log(b)
+  sigma2 = var(mu[mu>0])/snr
   X = matrix(nrow=n_simu,ncol=n)
   L = matrix(nrow=n_simu,ncol=n)
   for(i in 1:n_simu){
-    l = exp(b+rnorm(n,0,sd=sqrt(sigma2)))
+    l = exp(mu+rnorm(n,0,sd=sqrt(sigma2)))
     L[i,] = l
     X[i,] = rpois(n,l)
   }
-  return(list(X=X,latentX=L,b=b,snr=snr,sigma2=sigma2,count_size=count_size,smooth_func=smooth_func,seed=seed))
+  return(list(X=X,latentX=L,b=mu,snr=snr,sigma2=sigma2,count_size=count_size,smooth_func=smooth_func,seed=seed,min_lambda=min_lambda))
 }
 
 #'@title compare methods for smoothing Poisson sequence
@@ -63,13 +65,31 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                                    'lik_exp_smashpoi_nug',
                                                    'lik_exp_smashpoi_nug_top',
                                                    'lik_exp_smashpoi_smooth',
+
+                                                   'split_dwt_true',
+
                                                    'split_runmed_dwt',
+                                                   'split_runmed_dwt_fix_nug',
+
+                                                   'split_smashpoi_dwt',
+                                                   'split_smashpoi_dwt_fix_nug',
+
+                                                   'split_log1px_dwt',
+                                                   'split_log1px_dwt_fix_nug',
+
+
                                                    'split_runmed_ndwt',
                                                    'split_runmed_ndwt_top',
-                                                   'split_log1px_ndwt',
                                                    'split_runmed_ndwt_fix_nug',
+
+                                                   'split_log1px_ndwt',
                                                    'split_log1px_ndwt_fix_nug',
-                                                   'split_true',
+
+                                                   'split_smashpoi_ndwt',
+                                                   'split_smashpoi_ndwt_fix_nug',
+
+                                                   'split_ndwt_true',
+
                                                    'smash_two_step_homo',
                                                    'smash_two_step_hetero',
                                                    'smash'),
@@ -150,15 +170,40 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
       fitted_model$lik_exp_iter_hetero = res_lik_exp_iter_hetero
     }
 
+    if('split_dwt_true'%in%method_list){
+      fitted_model$split_dwt_true = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init=simdata$latentX[i,],
+                                                            filter.number = filter.number,family = family,maxiter=maxiter,
+                                                          est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
 
     if('split_runmed_dwt'%in%method_list){
       fitted_model$split_runmed_dwt = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='runmed',
                                                             filter.number = filter.number,family = family,maxiter=maxiter))
     }
-    if('split_smoothgaus_dwt'%in%method_list){
-      fitted_model$split_smoothgaus_dwt = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='smooth_gaus',
+    if('split_runmed_dwt_fix_nug'%in%method_list){
+      fitted_model$split_runmed_dwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='runmed',
+                                                            filter.number = filter.number,family = family,maxiter=maxiter,
+                                                            est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
+    if('split_smashpoi_dwt'%in%method_list){
+      fitted_model$split_smashpoi_dwt = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='smash_poi',
                                                             filter.number = filter.number,family = family,maxiter=maxiter))
     }
+    if('split_smashpoi_dwt_fix_nug'%in%method_list){
+      fitted_model$split_smashpoi_dwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='smash_poi',
+                                                              filter.number = filter.number,family = family,maxiter=maxiter,
+                                                              est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
+    if('split_log1px_dwt'%in%method_list){
+      fitted_model$split_log1px_dwt = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='log1px',
+                                                            filter.number = filter.number,family = family,maxiter=maxiter))
+    }
+    if('split_log1px_dwt_fix_nug'%in%method_list){
+      fitted_model$split_log1px_dwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='dwt',Emu_init='log1px',
+                                                            filter.number = filter.number,family = family,maxiter=maxiter,
+                                                            est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
+    }
+
     if('split_runmed_ndwt'%in%method_list){
       fitted_model$split_runmed_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='runmed',
                                                              filter.number = filter.number,family = family,maxiter=maxiter))
@@ -167,6 +212,11 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
       fitted_model$split_runmed_ndwt_top = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='runmed',
                                                              filter.number = filter.number,family = family,maxiter=maxiter,
                                                              sigma2_est_top = nug.est.limit))
+    }
+    if('split_runmed_ndwt_fix_nug'%in%method_list){
+      fitted_model$split_runmed_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='runmed',
+                                                                     filter.number = filter.number,family = family,maxiter=maxiter,
+                                                                     est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
     if('split_log1px_ndwt'%in%method_list){
       fitted_model$split_log1px_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='log1px',
@@ -177,19 +227,20 @@ simu_study_poisson_smooth = function(simdata,save_data=TRUE,
                                                              filter.number = filter.number,family = family,maxiter=maxiter,
                                                              est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
-    if('split_true'%in%method_list){
-      fitted_model$split_true = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init=simdata$b,
+    if('split_ndwt_true'%in%method_list){
+      fitted_model$split_ndwt_true = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init=simdata$latentX[i,],
                                                       filter.number = filter.number,family = family,maxiter=maxiter,
                                                       est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
-    if('split_runmed_ndwt_fix_nug'%in%method_list){
-      fitted_model$split_runmed_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='runmed',
-                                                                     filter.number = filter.number,family = family,maxiter=maxiter,
-                                                                     est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
-    }
-    if('split_smoothgaus_ndwt'%in%method_list){
-      fitted_model$split_smoothgaus_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='smooth_gaus',
+
+    if('split_smashpoi_ndwt'%in%method_list){
+      fitted_model$split_smashpoi_ndwt = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='smash_poi',
                                                              filter.number = filter.number,family = family,maxiter=maxiter))
+    }
+    if('split_smashpoi_ndwt_fix_nug'%in%method_list){
+      fitted_model$split_smashpoi_ndwt_fix_nug = try(pois_smooth_split(simdata$X[i,],wave_trans='ndwt',Emu_init='smash_poi',
+                                                               filter.number = filter.number,family = family,maxiter=maxiter,
+                                                               est_sigma2 = FALSE, sigma2_init = simdata$sigma2))
     }
     if('smash'%in%method_list){
       t1 = Sys.time()
