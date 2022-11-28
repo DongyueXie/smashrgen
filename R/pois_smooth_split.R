@@ -100,7 +100,8 @@ pois_smooth_split_init_b = function(x,
 
   for(iter in 1:maxiter){
     # get m, s^2
-    opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
+    #opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
+    opt = vga_pois_solver(mu_pm,x,s,Eb,sigma2)
     mu_pm = opt$m
     mu_pv = opt$v
 

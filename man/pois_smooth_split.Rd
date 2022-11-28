@@ -7,7 +7,7 @@
 pois_smooth_split(
   x,
   s = NULL,
-  Emu_init = "runmed",
+  Emu_init = "smash_poi",
   ash_pm_init_for0 = TRUE,
   eps_for0 = "estimate",
   sigma2_init = NULL,

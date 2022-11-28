@@ -28,7 +28,7 @@
 
 pois_smooth_split = function(x,
                              s = NULL,
-                             Emu_init = 'runmed',
+                             Emu_init = 'smash_poi',
                              ash_pm_init_for0 = TRUE,
                              eps_for0 = 'estimate',
                              sigma2_init = NULL,
@@ -135,7 +135,8 @@ pois_smooth_split = function(x,
 
 
     # get m, s^2
-    opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
+    #opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
+    opt = vga_pois_solver(mu_pm,x,s,Eb,sigma2)
     mu_pm = opt$m
     mu_pv = opt$v
 
