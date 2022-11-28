@@ -81,7 +81,8 @@ pois_smooth_split = function(x,
   mu_pm = Emu_init
 
   if(is.null(sigma2_init)){
-    sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
+    #sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
+    sigma2_init = var(mu_pm - smash.gaus(mu_pm))
   }
   sigma2 = sigma2_init
 
