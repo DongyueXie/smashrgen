@@ -1,7 +1,6 @@
-#'@title Smooth over-dispersed Poisson sequence via splitting method
+#'@title Smooth over-dispersed Poisson sequence via splitting method. initialize at 0
 #'@param x data vector
 #'@param maxiter,tol max iteration and tolerance for stopping it.
-#'@param Emu_init,sigma2_init initial values of latent variable and nugget effect.
 #'@param wave_trans dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`
 #'@param ndwt_method if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.
 #'@param convergence_criteria 'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect
@@ -26,15 +25,12 @@
 #'@import smashr
 #'@export
 
-pois_smooth_split = function(x,
+pois_smooth_split_simple = function(x,
                              s = NULL,
-                             Emu_init = 'smash_poi',
-                             ash_pm_init_for0 = TRUE,
-                             eps_for0 = 'estimate',
-                             sigma2_init = NULL,
+                             sigma2 = NULL,
                              est_sigma2 = TRUE,
                              maxiter = 100,
-                             tol=1e-5,
+                             tol=1e-8,
                              filter.number = 1,
                              family = 'DaubExPhase',
                              wave_trans='dwt',
@@ -42,10 +38,8 @@ pois_smooth_split = function(x,
                              verbose=FALSE,
                              printevery = 10,
                              ebnm_params=list(mode=0),
-                             optim_method='L-BFGS-B',
                              convergence_criteria = 'objabs',
                              W=NULL,
-                             sigma2_est_top = NULL,
                              plot_updates = FALSE){
 
   t_start = Sys.time()
@@ -57,44 +51,15 @@ pois_smooth_split = function(x,
     s = rep(s,n)
   }
   const = sum(lfactorial(x))
-  if(!is.numeric(Emu_init)|length(Emu_init)!=n){
-    if(Emu_init == 'smash_poi'){
-      Emu_init = smash.poiss(x,log=TRUE) - log(s)
-    }else if(Emu_init == 'logx'){
-      Emu_init = log(x/s)
-      if(min(x)<1){
-        idx = (x < 1)
-        if(ash_pm_init_for0){
-          x_pm = ash_pois(x,scale=s,link='identity')$result$PosteriorMean
-          Emu_init[idx] = log(x_pm[idx])
-        }else{
-          if(eps_for0 == 'estimate'){
-            eps_for0 = sum(round(x)==1)/sum(round(x)<=1)+0.1
-          }
-          Emu_init[idx] = log((x[idx]+eps_for0)/s[idx])
-        }
-      }
-    }else if(Emu_init == 'vga'){
-      if(is.null(sigma2_init)){
-        fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
-        Emu_init = fit_init$posterior$mean_log
-        sigma2_init = fit_init$fitted_g$var
-      }else{
-        fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2_init)
-        Emu_init = fit_init$posterior$mean_log
-      }
-    }else{
-      stop('unknown init method of mu')
-    }
+  # init
+  if(is.null(sigma2)){
+    fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
+    mu_pm = fit_init$posterior$mean_log
+    sigma2 = fit_init$fitted_g$var
+  }else{
+    fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2)
+    mu_pm = fit_init$posterior$mean_log
   }
-
-  mu_pm = Emu_init
-
-  if(is.null(sigma2_init)){
-    #sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
-    sigma2_init = var(mu_pm - smash.gaus(mu_pm))
-  }
-  sigma2 = sigma2_init
 
 
   if(wave_trans=='ndwt'){
@@ -109,15 +74,7 @@ pois_smooth_split = function(x,
     obj = -Inf
   }
 
-  if(!is.null(sigma2_est_top)&convergence_criteria == 'nugabs'&est_sigma2){
-    top_idx = order(x,decreasing = TRUE)[1:round(n*sigma2_est_top)]
-  }
-
-  #mu_pm = rep(0,n)
-  #mu_pv = rep(1/n,n)
-
   Eb_old = Inf
-
   sigma2_trace = c()
 
   for(iter in 1:maxiter){
@@ -140,7 +97,7 @@ pois_smooth_split = function(x,
     }
 
     if(plot_updates){
-      plot(mu_pm,col='grey80',ylim=range(Emu_init))
+      plot(mu_pm,col='grey80')
       lines(Eb)
     }
 
@@ -153,8 +110,8 @@ pois_smooth_split = function(x,
 
     # get sigma2
     if(est_sigma2){
-      if(convergence_criteria=='nugabs'&!is.null(sigma2_est_top)){
-        sigma2_new = mean((mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)[top_idx])
+      if(convergence_criteria=='nugabs'){
+        sigma2_new = mean((mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb))
       }else{
         sigma2_new = mean(mu_pm^2+mu_pv+Eb2-2*mu_pm*Eb)
       }
@@ -185,7 +142,7 @@ pois_smooth_split = function(x,
         }
       }
 
-      if((obj[iter+1]-obj[iter])/n <tol){
+      if((obj[iter+1]-obj[iter])/n<tol){
         break
       }
     }
@@ -215,9 +172,5 @@ pois_smooth_split = function(x,
                 fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
                 run_time = difftime(t_end,t_start,units='secs')))
   }
-}
-
-pois_smooth_split_obj = function(x,s,m,s2,Eb,Eb2,sigma2,KLb,const){
-  return(sum(x*m-s*exp(m+s2/2)+log(s2)/2-log(sigma2)/2-(m^2+s2-2*m*Eb+Eb2)/2/sigma2)+KLb-const)
 }
 

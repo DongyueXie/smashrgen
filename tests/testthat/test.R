@@ -36,4 +36,16 @@ fit = smash_gen_pois_iterative(x,maxiter = 10)
 simdata = sim_data_smooth(1,count_size=10,n=128)
 out = simu_study_poisson_smooth(simdata,n_cores=1)
 
+set.seed(12345)
+n=2^10
+count_size = 10
+sigma=0.5
+t = seq(0,1,length.out = n)
+b = spike.f(t)
+b = b/(max(b)/count_size)
+x = rpois(n,exp(log(b)+rnorm(n,sd=sigma)))
+plot(x,col='grey80')
+lines(b,col='grey50')
 
+fit = pois_smooth_split(x,maxiter=100,wave_trans = 'dwt',verbose = T,Emu_init = 'vga')
+lines(fit$posterior$mean_smooth)

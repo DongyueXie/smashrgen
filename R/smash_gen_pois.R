@@ -194,7 +194,6 @@ nugget_est=function(y,st,nug.init=NULL,nug.est.limit,method,filter.number,family
 
 }
 
-#'@export
 ispowerof2 <- function (x){
   x >= 1 & 2^ceiling(log2(x)) == x
 }
