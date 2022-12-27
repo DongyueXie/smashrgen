@@ -3,7 +3,7 @@ n=2^9
 sigma=0.5
 mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
 x = rpois(n,exp(log(mu)+rnorm(n,sd=sigma)))
-fit = pois_smooth_split(x,maxiter=30,wave_trans = 'dwt')
+fit = pois_smooth_split(x,maxiter=30,wave_trans = 'dwt',verbose=TRUE)
 plot(x,col='grey80')
 lines(mu,col='grey50')
 lines(fit$posterior$mean_smooth)
@@ -37,7 +37,7 @@ simdata = sim_data_smooth(1,count_size=10,n=128)
 out = simu_study_poisson_smooth(simdata,n_cores=1)
 
 set.seed(12345)
-n=2^10
+n=2^12
 count_size = 10
 sigma=0.5
 t = seq(0,1,length.out = n)
@@ -47,5 +47,5 @@ x = rpois(n,exp(log(b)+rnorm(n,sd=sigma)))
 plot(x,col='grey80')
 lines(b,col='grey50')
 
-fit = pois_smooth_split(x,maxiter=100,wave_trans = 'dwt',verbose = T,Emu_init = 'vga')
+fit = pois_smooth_split(x,maxiter=100,wave_trans = 'dwt',verbose = T,Emu_init = 'vga',maxiter_vga = 1)
 lines(fit$posterior$mean_smooth)

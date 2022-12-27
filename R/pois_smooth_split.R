@@ -34,6 +34,7 @@ pois_smooth_split = function(x,
                              sigma2_init = NULL,
                              est_sigma2 = TRUE,
                              maxiter = 100,
+                             maxiter_vga = 1,
                              tol=1e-5,
                              filter.number = 1,
                              family = 'DaubExPhase',
@@ -147,7 +148,7 @@ pois_smooth_split = function(x,
 
     # get m, s^2
     #opt = vga_optimize(c(mu_pm,log(mu_pv)),x,s,Eb,sigma2)
-    opt = vga_pois_solver(mu_pm,x,s,Eb,sigma2)
+    opt = vga_pois_solver(mu_pm,x,s,Eb,sigma2,maxiter = maxiter_vga)
     mu_pm = opt$m
     mu_pv = opt$v
 
