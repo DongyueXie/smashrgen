@@ -1,5 +1,5 @@
 # smashrgen
- A generalization of smashr.
+ Smooth Poisson sequence via wavelet.
  To install the package, run the following code in R.
 
 ```r
