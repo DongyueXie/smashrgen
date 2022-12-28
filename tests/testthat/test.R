@@ -47,5 +47,5 @@ x = rpois(n,exp(log(b)+rnorm(n,sd=sigma)))
 plot(x,col='grey80')
 lines(b,col='grey50')
 
-fit = pois_smooth_split(x,maxiter=100,wave_trans = 'dwt',verbose = T,Emu_init = 'vga',maxiter_vga = 1)
+fit = pois_smooth_split(x,maxiter=100,wave_trans = 'dwt',verbose = T,Emu_init = 'vga',maxiter_vga = 1,ndwt_method='ti.thresh')
 lines(fit$posterior$mean_smooth)

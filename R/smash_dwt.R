@@ -11,19 +11,23 @@
 #'  \item{loglik:}{log likelihood}
 #'  \item{dKL:}{KL divergence between g(the prior) and q(the posterior)}
 #'@import wavethresh
-#'@import vebpm
 #'@import ebnm
 #'@export
 smash_dwt = function(x,sigma,filter.number=1,
                      family="DaubExPhase",
-                     ebnm_params=list(mode=0),W=NULL){
+                     ebnm_params=list(),W=NULL){
 
   n = length(x)
   J = log(n,2)
   if(ceiling(J)!=floor(J)){
     stop('Length of x must be power of 2')
   }
-  ebnm_params = modifyList(ebnm_params_default(),ebnm_params,keep.null =  TRUE)
+  if(filter.number==1&family=='DaubExPhase'){
+    wavelet_name = "haar"
+  }else{
+    wavelet_name = 'non-haar'
+  }
+  ebnm_params = modifyList(ebnm_params_default_plr(),ebnm_params,keep.null =  TRUE)
   tsum = sum(x)/sqrt(n)
   x.w = wd(x, filter.number = filter.number,
            family = family, type = "wavelet")
@@ -33,9 +37,12 @@ smash_dwt = function(x,sigma,filter.number=1,
     data.var = rep(data.var,n)
   }
 
-  if(is.null(W)){
-    W = (t(GenW(n,filter.number,family)))[-1,]
+  if(wavelet_name!='haar'){
+    if(is.null(W)){
+      W = (t(GenW(n,filter.number,family)))[-1,]
+    }
   }
+
 
   if(length(sigma)==1){
     x.w.v = rep(sigma^2,n-1)
@@ -64,7 +71,8 @@ smash_dwt = function(x,sigma,filter.number=1,
              g_init = ebnm_params$g_init,
              fix_g = ebnm_params$fix_g,
              output = ebnm_params$output,
-             optmethod = ebnm_params$optmethod)
+             optmethod = ebnm_params$optmethod,
+             control = ebnm_params$control)
 
     dKL = dKL + a$log_likelihood - Eloglik(x.w.j[ind.nnull], sqrt(x.w.v.j[ind.nnull]),a$posterior$mean, a$posterior$mean^2+a$posterior$sd^2)
     x.pm[ind.nnull] = a$posterior$mean
@@ -77,7 +85,12 @@ smash_dwt = function(x,sigma,filter.number=1,
   mu.est = wr(x.w)
   loglik = sum(loglik.scale)
   #x.w.v.s = c(tsum.var,x.w.v.s)
-  mu.est.var = colSums(W^2*x.w.v.s)
+  if(wavelet_name=='haar'){
+    mu.est.var = haar_inv_var(c(x.w.v.s,0))
+  }else{
+    mu.est.var = colSums(W^2*x.w.v.s)
+  }
+
   return(list(posterior=list(mean=mu.est,var=mu.est.var),
               loglik = loglik,
               dKL = dKL,
@@ -94,4 +107,49 @@ Eloglik = function(x, s, Et, Et2) {
   Et = Et[idx]
   Et2 = Et2[idx]
   return(-0.5 * sum(log(2*pi*s^2) + (1/s^2) * (Et2 - 2*x*Et + x^2)))
+}
+
+ebnm_params_default_plr = function(){
+  return(list(prior_family='normal_scale_mixture',
+              mode=0,
+              scale = "estimate",
+              g_init = NULL,
+              fix_g = FALSE,
+              output = output_default(),
+              optmethod = NULL,
+              control = NULL))
+}
+
+
+haar = function(x,scale= sqrt(2)){
+  if(length(x)==1){
+    return(x)
+  }
+  else{
+    x = matrix(x,nrow=2)
+    diff = (x[1,]-x[2,])/scale
+    sum = (x[1,]+x[2,])/scale
+    return(c(diff, haar(sum)))
+  }
+}
+
+haar_inv = function(x,scale=sqrt(2)){
+  n=length(x)
+  if(n==1){
+    return(x)
+  }
+  x = matrix(scale*x,nrow=2,byrow=TRUE)
+  smoothed = haar_inv(x[2,])
+  return(as.vector(rbind(smoothed+x[1,], smoothed-x[1,]))/2)
+}
+
+haar_inv_var = function(v,scale=sqrt(2)){
+  n=length(v)
+  if(n==1){
+    return(v)
+  }
+  v = matrix(scale^2*v,nrow=2,byrow=TRUE)
+  smoothed = haar_inv_var(v[2,])
+  return(as.vector(rbind(smoothed+v[1,], smoothed+v[1,]))/4)
+  #return(rep((smoothed+v[1,])/4,each=2))
 }

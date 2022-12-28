@@ -9,7 +9,7 @@ smash_dwt(
   sigma,
   filter.number = 1,
   family = "DaubExPhase",
-  ebnm_params = list(mode = 0),
+  ebnm_params = list(),
   W = NULL
 )
 }
