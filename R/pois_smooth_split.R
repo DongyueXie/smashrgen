@@ -28,7 +28,7 @@
 
 pois_smooth_split = function(x,
                              s = NULL,
-                             Emu_init = 'smash_poi',
+                             Emu_init = 'vga',
                              ash_pm_init_for0 = TRUE,
                              eps_for0 = 'estimate',
                              sigma2_init = NULL,
@@ -39,11 +39,10 @@ pois_smooth_split = function(x,
                              filter.number = 1,
                              family = 'DaubExPhase',
                              wave_trans='dwt',
-                             ndwt_method='smash',
+                             ndwt_method='ti.thresh',
                              verbose=FALSE,
                              printevery = 10,
                              ebnm_params=list(mode=0),
-                             optim_method='L-BFGS-B',
                              convergence_criteria = 'objabs',
                              W=NULL,
                              sigma2_est_top = NULL,
@@ -102,7 +101,7 @@ pois_smooth_split = function(x,
     convergence_criteria = 'nugabs'
   }
 
-  if(wave_trans=='dwt'&is.null(W)){
+  if(wave_trans=='dwt'&is.null(W)&filter.number != 1&family != 'DaubExPhase'){
     W = (t(GenW(n,filter.number,family)))[-1,]
   }
 
@@ -194,25 +193,36 @@ pois_smooth_split = function(x,
   }
   t_end = Sys.time()
   if(wave_trans=='dwt'){
-    return(list(posterior=list(mean_smooth = exp(Eb),
-                               mean_lambda=exp(mu_pm+mu_pv/2),
-                               var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
-                               mean_mu = mu_pm,
-                               var_mu = mu_pv,
-                               mean_latent_smooth = Eb,
-                               Var_latent_smooth = Eb2-Eb^2),
+    return(list(posterior=list(mean=exp(mu_pm+mu_pv/2),
+                               mean_log = mu_pm,
+                               mean_smooth = exp(Eb),
+                               mean_log_smooth=Eb),
+                # posterior_full=list(mean_smooth = exp(Eb),
+                #                     mean_lambda=exp(mu_pm+mu_pv/2),
+                #                     var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
+                #                     mean_mu = mu_pm,
+                #                     var_mu = mu_pv,
+                #                     mean_latent_smooth = Eb,
+                #                     var_latent_smooth = Eb2-Eb^2),
                 fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
-                obj_value=obj,
+                elbo=obj[length(obj)],
+                elbo_trace = obj,
                 H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2),
+                log_likelihood = obj[length(obj)],
                 run_time = difftime(t_end,t_start,units='secs')))
   }else{
-    return(list(posterior=list(mean_smooth = exp(Eb),
-                               mean_lambda=exp(mu_pm+mu_pv/2),
-                               var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
-                               mean_mu = mu_pm,
-                               var_mu = mu_pv,
-                               mean_latent_smooth = Eb,
-                               Var_latent_smooth = Eb2-Eb^2),
+    return(list(posterior=list(mean = exp(mu_pm+mu_pv/2),
+                               mean_log = mu_pm,
+                               mean_smooth = exp(Eb),
+                               mean_log_smooth=Eb),
+                # posterior_full=list(mean_smooth = exp(Eb),
+                #                mean_lambda=exp(mu_pm+mu_pv/2),
+                #                var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
+                #                mean_mu = mu_pm,
+                #                var_mu = mu_pv,
+                #                mean_latent_smooth = Eb,
+                #                var_latent_smooth = Eb2-Eb^2),
+                log_likelihood = NULL,
                 fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
                 run_time = difftime(t_end,t_start,units='secs')))
   }
