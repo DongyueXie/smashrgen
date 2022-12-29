@@ -13,7 +13,7 @@ pois_smooth_split(
   sigma2_init = NULL,
   est_sigma2 = TRUE,
   maxiter = 100,
-  maxiter_vga = 1,
+  vga_tol = 1e-05,
   tol = 1e-05,
   filter.number = 1,
   family = "DaubExPhase",
