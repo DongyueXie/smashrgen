@@ -5,6 +5,7 @@
 #'@param wave_trans dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`
 #'@param ndwt_method if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.
 #'@param convergence_criteria 'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect
+#'@param warmstart whether warmstart of dwt smoother
 #'@examples
 #' set.seed(12345)
 #' n=2^9
@@ -33,6 +34,7 @@ pois_smooth_split = function(x,
                              eps_for0 = 'estimate',
                              sigma2_init = NULL,
                              est_sigma2 = TRUE,
+                             warmstart=TRUE,
                              maxiter = 100,
                              vga_tol = 1e-5,
                              tol=1e-5,
@@ -120,10 +122,19 @@ pois_smooth_split = function(x,
 
   sigma2_trace = c()
 
+  if(wave_trans=='dwt' & warmstart){
+    qb = list(fitted_g = NULL)
+  }
+
   for(iter in 1:maxiter){
 
     if(wave_trans=='dwt'){
-      qb = smash_dwt(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_params=ebnm_params,W=W)
+      if(warmstart){
+        qb = suppressWarnings(smash_dwt(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_params=list(g_init=qb$fitted_g),W=W))
+      }else{
+        qb = smash_dwt(mu_pm,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_params=ebnm_params,W=W)
+      }
+
       Eb = qb$posterior$mean
       Eb2 = qb$posterior$var + Eb^2
     }

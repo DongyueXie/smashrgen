@@ -12,6 +12,7 @@ pois_smooth_split(
   eps_for0 = "estimate",
   sigma2_init = NULL,
   est_sigma2 = TRUE,
+  warmstart = TRUE,
   maxiter = 100,
   vga_tol = 1e-05,
   tol = 1e-05,
@@ -32,6 +33,8 @@ pois_smooth_split(
 \item{x}{data vector}
 
 \item{Emu_init, sigma2_init}{initial values of latent variable and nugget effect.}
+
+\item{warmstart}{whether warmstart of dwt smoother}
 
 \item{maxiter, tol}{max iteration and tolerance for stopping it.}
 

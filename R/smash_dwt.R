@@ -55,6 +55,7 @@ smash_dwt = function(x,sigma,filter.number=1,
 
   dKL = 0
   loglik.scale = c()
+  fitted_g = list()
   x.w.v.s = rep(0, 2^J-1)
   for (j in 0:(J - 1)) {
     x.pm = rep(0, 2^j)
@@ -68,7 +69,7 @@ smash_dwt = function(x,sigma,filter.number=1,
              mode=ebnm_params$mode,
              prior_family=ebnm_params$prior_family,
              scale = ebnm_params$scale,
-             g_init = ebnm_params$g_init,
+             g_init = ebnm_params$g_init[[j+1]],
              fix_g = ebnm_params$fix_g,
              output = ebnm_params$output,
              optmethod = ebnm_params$optmethod,
@@ -79,6 +80,7 @@ smash_dwt = function(x,sigma,filter.number=1,
     x.pm[!ind.nnull] = 0
     x.w = putD(x.w, j, x.pm)
     loglik.scale[j + 1] = a$log_likelihood
+    fitted_g[[j+1]] = a$fitted_g
     x.w.v.s[index[ind.nnull]] = a$posterior$sd^2
     x.w.v.s[index[!ind.nnull]] = 0
   }
@@ -92,6 +94,7 @@ smash_dwt = function(x,sigma,filter.number=1,
   }
 
   return(list(posterior=list(mean=mu.est,var=mu.est.var),
+              fitted_g = fitted_g,
               loglik = loglik,
               dKL = dKL,
               x.w.v.s=x.w.v.s))

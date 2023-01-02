@@ -14,7 +14,7 @@
 #'@import ebnm
 #'@importFrom smashr reflect
 #'@export
-my.ebnm.fn = function(x, s, g_init, fix_g, output){
+dwt.fn = function(x, s, g_init, fix_g, output){
 
   filter.number=1
   family="DaubExPhase"
