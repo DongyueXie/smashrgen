@@ -1,8 +1,8 @@
 set.seed(12345)
-n=2^9
+n=2^9-1
 sigma=0.5
 mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
-x = rpois(n,exp(log(mu)+rnorm(n,sd=sigma)))
+x = rpois(length(mu),exp(log(mu)+rnorm(length(mu),sd=sigma)))
 fit = pois_smooth_split(x,maxiter=30,wave_trans = 'dwt',verbose=TRUE)
 plot(x,col='grey80')
 lines(mu,col='grey50')

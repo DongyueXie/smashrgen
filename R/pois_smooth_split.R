@@ -58,6 +58,22 @@ pois_smooth_split = function(x,
   if(length(s)==1){
     s = rep(s,n)
   }
+
+  J = log(n,2)
+  n_orig = n
+  if(ceiling(J)!=floor(J)){
+    #stop('Length of x must be power of 2')
+    # reflect
+    x = reflect(x)
+    idx = x$idx
+    x = x$x
+    n = length(x)
+    J = log(n,2)
+    s = reflect(s)$x
+  }else{
+    idx = 1:n
+  }
+
   const = sum(lfactorial(x))
   if(!is.numeric(Emu_init)|length(Emu_init)!=n){
     if(Emu_init == 'smash_poi'){
@@ -204,10 +220,10 @@ pois_smooth_split = function(x,
   }
   t_end = Sys.time()
   if(wave_trans=='dwt'){
-    return(list(posterior=list(mean=exp(mu_pm+mu_pv/2),
-                               mean_log = mu_pm,
-                               mean_smooth = exp(Eb),
-                               mean_log_smooth=Eb),
+    return(list(posterior=list(mean=exp(mu_pm+mu_pv/2)[idx],
+                               mean_log = mu_pm[idx],
+                               mean_smooth = exp(Eb)[idx],
+                               mean_log_smooth=Eb[idx]),
                 # posterior_full=list(mean_smooth = exp(Eb),
                 #                     mean_lambda=exp(mu_pm+mu_pv/2),
                 #                     var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
@@ -216,16 +232,16 @@ pois_smooth_split = function(x,
                 #                     mean_latent_smooth = Eb,
                 #                     var_latent_smooth = Eb2-Eb^2),
                 fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
-                elbo=obj[length(obj)],
-                elbo_trace = obj,
-                H = qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2),
-                log_likelihood = obj[length(obj)],
+                elbo=obj[length(obj)]/n*n_orig,
+                elbo_trace = obj/n*n_orig,
+                H = (qb$dKL + sum(log(2*pi*mu_pv)/2-log(2*pi*sigma2)/2-(mu_pm^2+mu_pv-2*mu_pm*Eb+Eb2)/2/sigma2))/n*n_orig,
+                log_likelihood = obj[length(obj)]/n*n_orig,
                 run_time = difftime(t_end,t_start,units='secs')))
   }else{
-    return(list(posterior=list(mean = exp(mu_pm+mu_pv/2),
-                               mean_log = mu_pm,
-                               mean_smooth = exp(Eb),
-                               mean_log_smooth=Eb),
+    return(list(posterior=list(mean = exp(mu_pm+mu_pv/2)[idx],
+                               mean_log = mu_pm[idx],
+                               mean_smooth = exp(Eb)[idx],
+                               mean_log_smooth=Eb[idx]),
                 # posterior_full=list(mean_smooth = exp(Eb),
                 #                mean_lambda=exp(mu_pm+mu_pv/2),
                 #                var_lambda = exp(mu_pv-1)*exp(2*mu_pm+mu_pv),
