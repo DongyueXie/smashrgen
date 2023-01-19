@@ -62,6 +62,13 @@ pois_smooth_split = function(x,
     s = rep(s,n)
   }
 
+  if(!is.null(sigma2_init)){
+    if(any(is.na(sigma2_init))){
+      sigma2_init = NULL
+    }
+  }
+
+
   J = log(n,2)
   n_orig = n
   if(ceiling(J)!=floor(J)){
@@ -118,7 +125,7 @@ pois_smooth_split = function(x,
         }
       }
     }else if(m_init == 'vga'){
-      if(is.null(sigma2_init)|is.na(sigma2_init)){
+      if(is.null(sigma2_init)){
         fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
         m_init = fit_init$posterior$mean_log
         sigma2_init = fit_init$fitted_g$var
@@ -133,7 +140,7 @@ pois_smooth_split = function(x,
 
   mu_pm = m_init
 
-  if(is.null(sigma2_init)|is.na(sigma2_init)){
+  if(is.null(sigma2_init)){
     #sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
     if(is.null(smooth_init)){
       sigma2_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))$fitted_g$var
