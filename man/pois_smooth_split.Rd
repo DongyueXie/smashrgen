@@ -7,7 +7,8 @@
 pois_smooth_split(
   x,
   s = NULL,
-  Emu_init = "vga",
+  m_init = "vga",
+  smooth_init = NULL,
   ash_pm_init_for0 = TRUE,
   eps_for0 = "estimate",
   sigma2_init = NULL,
@@ -25,6 +26,7 @@ pois_smooth_split(
   ebnm_params = list(mode = 0),
   convergence_criteria = "objabs",
   W = NULL,
+  make_power_of_2 = "reflect",
   sigma2_est_top = NULL,
   plot_updates = FALSE
 )
@@ -32,7 +34,9 @@ pois_smooth_split(
 \arguments{
 \item{x}{data vector}
 
-\item{Emu_init, sigma2_init}{initial values of latent variable and nugget effect.}
+\item{m_init, sigma2_init}{initial values of latent variable and nugget effect.}
+
+\item{smooth_init}{init of smooth function.}
 
 \item{warmstart}{whether warmstart of dwt smoother}
 

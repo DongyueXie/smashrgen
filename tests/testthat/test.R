@@ -1,5 +1,5 @@
 set.seed(12345)
-n=2^9-1
+n=2^9+100
 sigma=0.5
 mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
 x = rpois(length(mu),exp(log(mu)+rnorm(length(mu),sd=sigma)))

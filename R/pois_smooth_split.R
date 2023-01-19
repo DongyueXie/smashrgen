@@ -1,7 +1,8 @@
 #'@title Smooth over-dispersed Poisson sequence via splitting method
 #'@param x data vector
 #'@param maxiter,tol max iteration and tolerance for stopping it.
-#'@param Emu_init,sigma2_init initial values of latent variable and nugget effect.
+#'@param m_init,sigma2_init initial values of latent variable and nugget effect.
+#'@param smooth_init init of smooth function.
 #'@param wave_trans dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`
 #'@param ndwt_method if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.
 #'@param convergence_criteria 'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect
@@ -29,7 +30,8 @@
 
 pois_smooth_split = function(x,
                              s = NULL,
-                             Emu_init = 'vga',
+                             m_init = 'vga',
+                             smooth_init = NULL,
                              ash_pm_init_for0 = TRUE,
                              eps_for0 = 'estimate',
                              sigma2_init = NULL,
@@ -47,6 +49,7 @@ pois_smooth_split = function(x,
                              ebnm_params=list(mode=0),
                              convergence_criteria = 'objabs',
                              W=NULL,
+                             make_power_of_2 = 'reflect',
                              sigma2_est_top = NULL,
                              plot_updates = FALSE){
 
@@ -70,47 +73,58 @@ pois_smooth_split = function(x,
     n = length(x)
     J = log(n,2)
     s = reflect(s)$x
+    if(is.numeric(m_init)){
+      m_init = reflect(m_init)$x
+    }
+    if(is.numeric(smooth_init)){
+      smooth_init = reflect(smooth_init)$x
+    }
   }else{
     idx = 1:n
   }
 
   const = sum(lfactorial(x))
-  if(!is.numeric(Emu_init)|length(Emu_init)!=n){
-    if(Emu_init == 'smash_poi'){
-      Emu_init = smash.poiss(x,log=TRUE) - log(s)
-    }else if(Emu_init == 'logx'){
-      Emu_init = log(x/s)
-      if(min(x)<1){
-        idx = (x < 1)
+  if(!is.numeric(m_init)|length(m_init)!=n){
+    if(m_init == 'smash_poi'){
+      m_init = smash.poiss(x,log=TRUE) - log(s)
+    }else if(m_init == 'logx'){
+      m_init = log(x/s)
+      if(min(x)==0){
+        idx0 = (x == 0)
         if(ash_pm_init_for0){
           x_pm = ash_pois(x,scale=s,link='identity')$result$PosteriorMean
-          Emu_init[idx] = log(x_pm[idx])
+          m_init[idx0] = log(x_pm[idx0])
         }else{
           if(eps_for0 == 'estimate'){
             eps_for0 = sum(round(x)==1)/sum(round(x)<=1)+0.1
           }
-          Emu_init[idx] = log((x[idx]+eps_for0)/s[idx])
+          m_init[idx0] = log((x[idx0]+eps_for0)/s[idx0])
         }
       }
-    }else if(Emu_init == 'vga'){
+    }else if(m_init == 'vga'){
       if(is.null(sigma2_init)){
         fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
-        Emu_init = fit_init$posterior$mean_log
+        m_init = fit_init$posterior$mean_log
         sigma2_init = fit_init$fitted_g$var
       }else{
         fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2_init)
-        Emu_init = fit_init$posterior$mean_log
+        m_init = fit_init$posterior$mean_log
       }
     }else{
       stop('unknown init method of mu')
     }
   }
 
-  mu_pm = Emu_init
+  mu_pm = m_init
 
   if(is.null(sigma2_init)){
     #sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
-    sigma2_init = var(mu_pm - smash.gaus(mu_pm))
+    if(is.null(smooth_init)){
+      sigma2_init = var(mu_pm - smash.gaus(mu_pm))
+    }else{
+      sigma2_init = var(mu_pm - smooth_init)
+    }
+
   }
   sigma2 = sigma2_init
 
@@ -167,7 +181,7 @@ pois_smooth_split = function(x,
     }
 
     if(plot_updates){
-      plot(mu_pm,col='grey80',ylim=range(Emu_init))
+      plot(mu_pm,col='grey80',ylim=range(m_init))
       lines(Eb)
     }
 
@@ -257,5 +271,30 @@ pois_smooth_split = function(x,
 
 pois_smooth_split_obj = function(x,s,m,s2,Eb,Eb2,sigma2,KLb,const){
   return(sum(x*m-s*exp(m+s2/2)+log(s2)/2-log(sigma2)/2-(m^2+s2-2*m*Eb+Eb2)/2/sigma2)+KLb-const)
+}
+
+extend = function(x){
+  n = length(x)
+  J = log2(n)
+  if ((J%%1) == 0) {
+    return(list(x = x, idx = 1:n))
+  }else {
+    n.ext = 2^ceiling(J)
+    lnum = round((n.ext - n)/2)
+    rnum = n.ext - n - lnum
+    if (lnum == 0) {
+      x.lmir = NULL
+    }else {
+      x.lmir = rep(x[1],lnum)
+    }
+    if (rnum == 0) {
+      x.rmir = NULL
+    }else {
+      x.rmir = rep(x[n],rnum)
+    }
+    x.ini = c(x.lmir, x, x.rmir)
+    return(list(x = x.ini, idx = (lnum + 1):(lnum + n)))
+  }
+
 }
 
