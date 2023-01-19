@@ -67,17 +67,33 @@ pois_smooth_split = function(x,
   if(ceiling(J)!=floor(J)){
     #stop('Length of x must be power of 2')
     # reflect
-    x = reflect(x)
-    idx = x$idx
-    x = x$x
-    n = length(x)
-    J = log(n,2)
-    s = reflect(s)$x
-    if(is.numeric(m_init)){
-      m_init = reflect(m_init)$x
+    if(make_power_of_2=='reflect'){
+      x = reflect(x)
+      idx = x$idx
+      x = x$x
+      n = length(x)
+      J = log(n,2)
+      s = reflect(s)$x
+      if(is.numeric(m_init)){
+        m_init = reflect(m_init)$x
+      }
+      if(is.numeric(smooth_init)){
+        smooth_init = reflect(smooth_init)$x
+      }
     }
-    if(is.numeric(smooth_init)){
-      smooth_init = reflect(smooth_init)$x
+    if(make_power_of_2=='extend'){
+      x = extend(x)
+      idx = x$idx
+      x = x$x
+      n = length(x)
+      J = log(n,2)
+      s = extend(s)$x
+      if(is.numeric(m_init)){
+        m_init = extend(m_init)$x
+      }
+      if(is.numeric(smooth_init)){
+        smooth_init = extend(smooth_init)$x
+      }
     }
   }else{
     idx = 1:n
@@ -102,7 +118,7 @@ pois_smooth_split = function(x,
         }
       }
     }else if(m_init == 'vga'){
-      if(is.null(sigma2_init)){
+      if(is.null(sigma2_init)|is.na(sigma2_init)){
         fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
         m_init = fit_init$posterior$mean_log
         sigma2_init = fit_init$fitted_g$var
@@ -117,10 +133,11 @@ pois_smooth_split = function(x,
 
   mu_pm = m_init
 
-  if(is.null(sigma2_init)){
+  if(is.null(sigma2_init)|is.na(sigma2_init)){
     #sigma2_init = var(mu_pm - ti.thresh(mu_pm,method='rmad'))
     if(is.null(smooth_init)){
-      sigma2_init = var(mu_pm - smash.gaus(mu_pm))
+      sigma2_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))$fitted_g$var
+      #sigma2_init = var(mu_pm - smash.gaus(mu_pm))
     }else{
       sigma2_init = var(mu_pm - smooth_init)
     }
