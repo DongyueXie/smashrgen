@@ -15,6 +15,7 @@ pois_smooth_split(
   est_sigma2 = TRUE,
   warmstart = TRUE,
   maxiter = 100,
+  maxiter_vga = 100,
   vga_tol = 1e-05,
   tol = 1e-05,
   filter.number = 1,
