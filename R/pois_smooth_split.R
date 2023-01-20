@@ -51,7 +51,6 @@ pois_smooth_split = function(x,
                              convergence_criteria = 'objabs',
                              W=NULL,
                              make_power_of_2 = 'reflect',
-                             sigma2_est_top = NULL,
                              plot_updates = FALSE){
 
   t_start = Sys.time()
@@ -127,11 +126,19 @@ pois_smooth_split = function(x,
       }
     }else if(m_init == 'vga'){
       if(is.null(sigma2_init)){
-        fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
+        if(is.null(smooth_init)){
+          fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
+        }else{
+          fit_init = pois_mean_GG(x,s,prior_mean = smooth_init)
+        }
         m_init = fit_init$posterior$mean_log
         sigma2_init = fit_init$fitted_g$var
       }else{
-        fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2_init)
+        if(is.null(smooth_init)){
+          fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2_init)
+        }else{
+          fit_init = pois_mean_GG(x,s,prior_mean = smooth_init,prior_var = sigma2_init)
+        }
         m_init = fit_init$posterior$mean_log
       }
     }else{
@@ -165,16 +172,12 @@ pois_smooth_split = function(x,
     obj = -Inf
   }
 
-  if(!is.null(sigma2_est_top)&convergence_criteria == 'nugabs'&est_sigma2){
-    top_idx = order(x,decreasing = TRUE)[1:round(n*sigma2_est_top)]
-  }
-
   #m = rep(0,n)
   #v = rep(1/n,n)
 
   Eb_old = Inf
 
-  sigma2_trace = c()
+  sigma2_trace = c(sigma2)
 
   if(wave_trans=='dwt' & warmstart){
     qb = list(fitted_g = NULL)
@@ -221,11 +224,7 @@ pois_smooth_split = function(x,
 
     # get sigma2
     if(est_sigma2){
-      if(convergence_criteria=='nugabs'&!is.null(sigma2_est_top)){
-        sigma2_new = mean((m^2+v+Eb2-2*m*Eb)[top_idx])
-      }else{
-        sigma2_new = mean(m^2+v+Eb2-2*m*Eb)
-      }
+      sigma2_new = mean(m^2+v+Eb2-2*m*Eb)
       sigma2_trace = c(sigma2_trace,sigma2_new)
       if(convergence_criteria=='nugabs'){
         if(abs(sigma2_new-sigma2)<tol){

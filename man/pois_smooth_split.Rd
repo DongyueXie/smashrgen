@@ -28,7 +28,6 @@ pois_smooth_split(
   convergence_criteria = "objabs",
   W = NULL,
   make_power_of_2 = "reflect",
-  sigma2_est_top = NULL,
   plot_updates = FALSE
 )
 }
