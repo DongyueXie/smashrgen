@@ -15,9 +15,9 @@
 #' x = rpois(n,exp(log(mu)+rnorm(n,sd=sigma)))
 #' fit = pois_smooth_split(x,maxiter=30)
 #' plot(x,col='grey80')
-#' lines(exp(fit$Eb))
+#' lines(fit$posterior$mean_smooth)
 #' fit$sigma2
-#' plot(fit$obj)
+#' plot(fit$elbo_trace)
 #'@details The problem is
 #'\deqn{x_i\sim Poisson(\lambda_i,}
 #'\deqn{\lambda_i = \exp(\mu_i)),}
@@ -263,7 +263,9 @@ pois_smooth_split = function(x,
     return(list(posterior=list(mean=exp(m+v/2)[idx],
                                mean_log = m[idx],
                                mean_smooth = exp(Eb)[idx],
-                               mean_log_smooth=Eb[idx]),
+                               mean_log_smooth=Eb[idx],
+                               var_log = v[idx],
+                               var_log_smooth = (Eb2-Eb^2)[idx]),
                 # posterior_full=list(mean_smooth = exp(Eb),
                 #                     mean_lambda=exp(m+v/2),
                 #                     var_lambda = exp(v-1)*exp(2*m+v),
@@ -271,7 +273,7 @@ pois_smooth_split = function(x,
                 #                     var_mu = v,
                 #                     mean_latent_smooth = Eb,
                 #                     var_latent_smooth = Eb2-Eb^2),
-                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
+                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace,g = qb$fitted_g),
                 elbo=obj[length(obj)]/n*n_orig,
                 elbo_trace = obj/n*n_orig,
                 H = (qb$dKL + sum(log(2*pi*v)/2-log(2*pi*sigma2)/2-(m^2+v-2*m*Eb+Eb2)/2/sigma2))/n*n_orig,

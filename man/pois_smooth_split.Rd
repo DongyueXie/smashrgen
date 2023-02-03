@@ -66,7 +66,7 @@ mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
 x = rpois(n,exp(log(mu)+rnorm(n,sd=sigma)))
 fit = pois_smooth_split(x,maxiter=30)
 plot(x,col='grey80')
-lines(exp(fit$Eb))
+lines(fit$posterior$mean_smooth)
 fit$sigma2
-plot(fit$obj)
+plot(fit$elbo_trace)
 }
