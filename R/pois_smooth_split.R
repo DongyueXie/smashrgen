@@ -127,17 +127,17 @@ pois_smooth_split = function(x,
     }else if(m_init == 'vga'){
       if(is.null(sigma2_init)){
         if(is.null(smooth_init)){
-          fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))
+          fit_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g = c(T,F))
         }else{
-          fit_init = pois_mean_GG(x,s,prior_mean = smooth_init)
+          fit_init = ebpm_normal(x,s,g_init = list(mean=smooth_init,var=NULL),fix_g = c(T,F))
         }
         m_init = fit_init$posterior$mean_log
         sigma2_init = fit_init$fitted_g$var
       }else{
         if(is.null(smooth_init)){
-          fit_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)),prior_var = sigma2_init)
+          fit_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var = sigma2_init),fix_g = c(T,T))
         }else{
-          fit_init = pois_mean_GG(x,s,prior_mean = smooth_init,prior_var = sigma2_init)
+          fit_init = ebpm_normal(x,s,g_init=list(mean = smooth_init,var = sigma2_init),fix_g = c(T,T))
         }
         m_init = fit_init$posterior$mean_log
       }
@@ -149,10 +149,10 @@ pois_smooth_split = function(x,
   if(is.null(sigma2_init)){
     #sigma2_init = var(m - ti.thresh(m,method='rmad'))
     if(is.null(smooth_init)){
-      sigma2_init = pois_mean_GG(x,s,prior_mean = log(sum(x)/sum(s)))$fitted_g$var
+      sigma2_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g=c(T,F))$fitted_g$var
       #sigma2_init = var(m - smash.gaus(m))
     }else{
-      sigma2_init = var(m - smooth_init)
+      sigma2_init = var(m_init - smooth_init)
     }
 
   }
