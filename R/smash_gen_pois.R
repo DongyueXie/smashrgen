@@ -66,7 +66,7 @@ smash_gen_pois = function(x,
           if(eps == 'estimate'){
             eps = sum(round(x)==1)/sum(round(x)<=1)+0.1
           }
-          lambda_tilde[x<1] = (x[x<1]+eps)/s
+          lambda_tilde[x<1] = (x[x<1]+eps)/s[x<1]
         }
       }
       # working data
@@ -96,13 +96,11 @@ smash_gen_pois = function(x,
 
     robust.z = qnorm(0.5+robust.q/2)
 
-    if(is.null(nugget)){
+    if(is.null(nug.init)){
       nug.init = uniroot(normaleqn_nugget,c(-1e6,1e6),y=y,mu=y.rmed,st=st)$root
       nug.init = max(c(0,nug.init))
-      outlier.idx = which(abs(y-y.rmed)>=(robust.z*sqrt(st^2+nug.init)))
-    }else{
-      outlier.idx = which(abs(y-y.rmed)>=robust.z*sqrt(st^2+nugget))
     }
+    outlier.idx = which(abs(y-y.rmed)>=(robust.z*sqrt(st^2+nug.init)))
     st[outlier.idx] = abs((y.wd.coefJ)[outlier.idx] - median(y.wd.coefJ))
   }
 
