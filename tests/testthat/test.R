@@ -4,25 +4,31 @@ sigma=0.5
 mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
 x = rpois(length(mu),exp(log(mu)+rnorm(length(mu),sd=sigma)))
 
-fit = ebps(x,general_control = list(verbose=T))
+fit = ebps(x,general_control = list(verbose=T),g_init = list(sigma2=3),q_init = list(smooth=log(mu)))
 plot(x,col='grey80')
 lines(mu,col='grey50')
 lines(fit$posterior$mean_smooth)
+fit$elbo
 
-x[128] = 30
-x[256] = 100
-plot(x,col='grey80',pch=20)
-lines(smash.poiss(x))
 
 fit = ebps(x,
-           init_control = list(sigma2_init = 0.5,smooth_init = mu),
-           general_control = list(verbose=T,tol=1e-5),
+           general_control = list(verbose=T,tol=1e-2),
            smooth_control = list(wave_trans = 'ndwt',
-                                 ndwt_method = 'ti.thresh',
-                                 robust=T))
+                                 ndwt_method = 'ti.thresh'))
 plot(x,col='grey80',pch=20)
 lines(mu,col='grey50')
 lines(fit$posterior$mean_smooth)
+fit$log_likelihood
+
+
+fit = ebps(x,general_control = list(verbose=T,tol=1e-5,maxiter=1),
+           g_init = list(sigma2=fit$fitted_g$sigma2),
+           q_init = list(smooth=fit$posterior$mean_log_smooth),
+                       smooth_control = list(wave_trans = 'dwt'))
+plot(x,col='grey80')
+lines(mu,col='grey50')
+lines(fit$posterior$mean_smooth)
+fit$elbo
 
 fit = pois_smooth_split(x,maxiter=10,wave_trans = 'ndwt',ndwt_method = 'smash')
 plot(x,col='grey80')

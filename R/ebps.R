@@ -33,6 +33,8 @@
 
 ebps = function(x,
                s = NULL,
+               g_init = NULL,
+               q_init = NULL,
                init_control = list(),
                general_control = list(),
                smooth_control = list()
@@ -47,32 +49,28 @@ ebps = function(x,
     s = rep(s,n_orig)
   }
 
-  init_controls = ebps_init_control_default()
-  init_controls = modifyList(init_controls,init_control,keep.null = TRUE)
-
-  general_controls = ebps_general_control_default()
-  general_controls = modifyList(general_controls,general_control,keep.null = TRUE)
-
-  smooth_controls = ebps_smooth_control_default()
-  smooth_controls = modifyList(smooth_controls,smooth_control,keep.null = TRUE)
+  init_controls = modifyList(ebps_init_control_default(),init_control,keep.null = TRUE)
+  general_controls = modifyList(ebps_general_control_default(),general_control,keep.null = TRUE)
+  smooth_controls = modifyList(ebps_smooth_control_default(),smooth_control,keep.null = TRUE)
 
   init_val = ebps_init(x,s,
                        general_controls$make_power_of_2,
-                       init_controls$sigma2_init,
-                       init_controls$m_init,
-                       init_controls$smooth_init,
-                       init_controls$ash_pm_init_for0,
-                       init_controls$eps_for0)
+                       g_init,
+                       q_init,
+                       init_controls$m_init_method
+                       )
 
-  sigma2 = init_val$sigma2_init
-  m = init_val$m_init
+  sigma2 = init_val$g_init$sigma2
+  m = init_val$q_init$m
   x = init_val$x
   s = init_val$s
   idx = init_val$idx
-  Eb = init_val$smooth_init
+  Eb = init_val$q_init$smooth
   if(is.null(Eb)){
     Eb = rep(mean(m),length(x))
   }
+  n = length(x)
+
 
   const = sum(lfactorial(x))
   v = rep(sigma2/2,length(x))
@@ -86,7 +84,7 @@ ebps = function(x,
 
   obj = -Inf
   s_update = list(Eb=Eb,
-                  qb = list(fitted_g = NULL))
+                  qb = list(fitted_g = init_val$g_init$g_smooth))
 
   Eb_old = Inf
   sigma2_trace = c(sigma2)
@@ -220,7 +218,7 @@ ebps_smooth_update = function(m,sigma2,
   }
   if(wave_trans=='ndwt'){
     if(ndwt_method=='smash'){
-      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_param=ebnm_params,post.var = TRUE)
+      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,ashparam=ebnm_params,post.var = TRUE)
       Eb = qb$mu.est
       Eb2 = Eb^2+qb$mu.est.var
     }
@@ -237,11 +235,7 @@ ebps_smooth_update = function(m,sigma2,
 }
 
 ebps_init_control_default = function(){
-  return(list(m_init = 'vga',
-              smooth_init = NULL,
-              ash_pm_init_for0 = TRUE,
-              eps_for0 = 'estimate',
-              sigma2_init = NULL))
+  return(list(m_init_method = 'vga'))
 }
 
 ebps_general_control_default = function(){
@@ -269,120 +263,6 @@ ebps_smooth_control_default = function(){
   ))
 }
 
-ebps_init = function(x,s,
-                     make_power_of_2,
-                     sigma2_init,
-                     m_init,
-                     smooth_init,
-                     ash_pm_init_for0,
-                     eps_for0
-){
-  n = length(x)
-  # m_init, sigma2_init, smooth_init
-  if(!is.null(sigma2_init)){
-    if(any(is.na(sigma2_init))){
-      sigma2_init = NULL
-    }
-  }
-
-
-  J = log(n,2)
-  n_orig = n
-  if(ceiling(J)!=floor(J)){
-    #stop('Length of x must be power of 2')
-    # reflect
-    if(make_power_of_2=='reflect'){
-      x = reflect(x)
-      idx = x$idx
-      x = x$x
-      n = length(x)
-      J = log(n,2)
-      s = reflect(s)$x
-      if(is.numeric(m_init)){
-        m_init = reflect(m_init)$x
-      }
-      if(is.numeric(smooth_init)){
-        smooth_init = reflect(smooth_init)$x
-      }
-    }
-    if(make_power_of_2=='extend'){
-      x = extend(x)
-      idx = x$idx
-      x = x$x
-      n = length(x)
-      J = log(n,2)
-      s = extend(s)$x
-      if(is.numeric(m_init)){
-        m_init = extend(m_init)$x
-      }
-      if(is.numeric(smooth_init)){
-        smooth_init = extend(smooth_init)$x
-      }
-    }
-  }else{
-    idx = 1:n
-  }
-
-
-  if(!is.numeric(m_init)|length(m_init)!=n){
-    if(m_init == 'smash_poi'){
-      m_init = smash.poiss(x,log=TRUE) - log(s)
-    }else if(m_init == 'logx'){
-      m_init = log(x/s)
-      if(min(x)==0){
-        idx0 = (x == 0)
-        if(ash_pm_init_for0){
-          x_pm = ash_pois(x,scale=s,link='identity')$result$PosteriorMean
-          m_init[idx0] = log(x_pm[idx0])
-        }else{
-          if(eps_for0 == 'estimate'){
-            eps_for0 = sum(round(x)==1)/sum(round(x)<=1)+0.1
-          }
-          m_init[idx0] = log((x[idx0]+eps_for0)/s[idx0])
-        }
-      }
-    }else if(m_init == 'vga'){
-      if(is.null(sigma2_init)){
-        if(is.null(smooth_init)){
-          fit_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g = c(T,F))
-        }else{
-          fit_init = ebpm_normal(x,s,g_init = list(mean=smooth_init,var=NULL),fix_g = c(T,F))
-        }
-        m_init = fit_init$posterior$mean_log
-        sigma2_init = fit_init$fitted_g$var
-      }else{
-        if(is.null(smooth_init)){
-          fit_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var = sigma2_init),fix_g = c(T,T))
-        }else{
-          fit_init = ebpm_normal(x,s,g_init=list(mean = smooth_init,var = sigma2_init),fix_g = c(T,T))
-        }
-        m_init = fit_init$posterior$mean_log
-      }
-    }else{
-      stop('unknown init method of mu')
-    }
-  }
-
-  if(is.null(sigma2_init)){
-    #sigma2_init = var(m - ti.thresh(m,method='rmad'))
-    if(is.null(smooth_init)){
-      sigma2_init = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g=c(T,F))$fitted_g$var
-      #sigma2_init = var(m - smash.gaus(m))
-    }else{
-      sigma2_init = var(m_init - smooth_init)
-    }
-
-  }
-  #sigma2 = sigma2_init
-  #m = m_init
-  #v = rep(sigma2/2,n)
-  return(list(sigma2_init = sigma2_init,
-              smooth_init=smooth_init,
-              m_init = m_init,
-              idx=idx,
-              x=x,
-              s=s))
-}
 
 # pois_smooth_split_obj = function(x,s,m,s2,Eb,Eb2,sigma2,KLb,const){
 #   return(sum(x*m-s*exp(m+s2/2)+log(s2)/2-log(sigma2)/2-(m^2+s2-2*m*Eb+Eb2)/2/sigma2)+KLb-const)

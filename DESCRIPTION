@@ -1,7 +1,7 @@
 Package: smashrgen
 Type: Package
 Title: Generalization of smashr
-Version: 1.1.6
+Version: 1.1.7
 Author: Dongyue Xie
 Maintainer: Dongyue Xie <dongyxie@gmail.com>
 Description: Generalization of smashr
