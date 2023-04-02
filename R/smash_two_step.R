@@ -1,7 +1,7 @@
 
 #'@title A two step method for smoothing Poisson seq
 #'@description This method first fit a smash poisson to the seq, then fit smash.gaus to the log estimation.
-#'@param x  data vector
+#'@param x data vector
 #'@import smashr
 #'@export
 

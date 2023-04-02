@@ -42,10 +42,10 @@ ebps_init = function(x,s,
   }
 
   if(is.null(g_init$sigma2)){
-    if(is.null(smooth_init)){
+    if(is.null(q_init$smooth)){
       g_init$sigma2 = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g=c(T,F))$fitted_g$var
     }else{
-      g_init$sigma2 = var(m_init - smooth_init)
+      g_init$sigma2 = var(m_init - q_init$smooth)
     }
   }
 

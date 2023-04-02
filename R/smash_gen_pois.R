@@ -120,7 +120,7 @@ smash_gen_pois = function(x,
   }
 
   if(transformation == 'vst'){
-    lambda.est = mu.est^2-3/(8*s)
+    lambda.est = mu.est^2-3/(8*s[idx])
   }else{
     lambda.est = exp(mu.est)
   }
@@ -153,9 +153,6 @@ nugget_est=function(y,st,nug.init=NULL,nug.est.limit,method,filter.number,family
     x.m=c(y[n],y,y[1])
     st.m=c(st[n],st,st[1])
     nug.init = ((x.m[2:(n+1)]-x.m[3:(n+2)])^2+(x.m[2:(n+1)]-x.m[1:(n)])^2-2*st.m[2:(n+1)]^2-st.m[1:(n)]^2-st.m[3:(n+2)]^2)/4
-    #nug.init = ((x.m[2:n]-x.m[3:(n+1)])^2+(x.m[2:n]-x.m[1:(n-1)])^2-2*st.m[2:n]^2-st.m[1:(n-1)]^2-st.m[3:(n+1)]^2)/4
-    #print(length(nug.init))
-    #print(nug.init)
     nug.init = mean(nug.init[top.idx])
     nug.init = max(0,nug.init)
   }

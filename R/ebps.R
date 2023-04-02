@@ -1,19 +1,17 @@
-#'@title empirical Bayes Poisson smooting
-#'@param x data vector
-#'@param maxiter,tol max iteration and tolerance for stopping it.
-#'@param m_init,sigma2_init initial values of latent variable and nugget effect.
-#'@param smooth_init init of smooth function.
-#'@param wave_trans dwt or ndwt. If ndwt, stopping criteria cannot be `objabs`
-#'@param ndwt_method if wave_trans is ndwt, either use `smash` or `ti.thresh`. When n is large, `ti.thresh` is much faster.
-#'@param convergence_criteria 'objabs' for absolute diff in ELBO, 'nugabs' for absolute diff in nugget effect
-#'@param warmstart whether warmstart of dwt smoother
+#'@title empirical Bayes Poisson smoothing
+#'@param x,s data vector and scaling factor
+#'@param g_init a list of sigma2, and g_smooth.
+#'@param q_init a list of m, smooth. m is the posterior mean of mu, smooth the posteriro mean of b
+#'@param init_control See function ebps_init_control_default
+#'@param general_control See function ebps_general_control_default
+#'@param smooth_control See function ebps_smooth_control_default
 #'@examples
 #' set.seed(12345)
 #' n=2^9
 #' sigma=0.5
 #' mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
 #' x = rpois(n,exp(log(mu)+rnorm(n,sd=sigma)))
-#' fit = pois_smooth_split(x,maxiter=30)
+#' fit = ebps(x)
 #' plot(x,col='grey80')
 #' lines(fit$posterior$mean_smooth)
 #' fit$sigma2
@@ -218,7 +216,7 @@ ebps_smooth_update = function(m,sigma2,
   }
   if(wave_trans=='ndwt'){
     if(ndwt_method=='smash'){
-      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,ashparam=ebnm_params,post.var = TRUE)
+      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_param=ebnm_params,post.var = TRUE)
       Eb = qb$mu.est
       Eb2 = Eb^2+qb$mu.est.var
     }
@@ -234,10 +232,15 @@ ebps_smooth_update = function(m,sigma2,
               qb=qb))
 }
 
+#'@title Default parameters for ebps initialization
+#'@param m_init_method 'vga' or 'smash_poi'
+#'@export
 ebps_init_control_default = function(){
   return(list(m_init_method = 'vga'))
 }
 
+#'@title Default parameters for ebps
+#'@export
 ebps_general_control_default = function(){
   return(list(est_sigma2 = TRUE,
               maxiter = 100,
@@ -251,6 +254,9 @@ ebps_general_control_default = function(){
               plot_updates = FALSE))
 }
 
+#'@title Default parameters for ebps smoothing function
+#'@param ndwt_method 'smash' or 'ti.thresh'
+#'@export
 ebps_smooth_control_default = function(){
   return(list(filter.number = 1,
               family = 'DaubExPhase',
