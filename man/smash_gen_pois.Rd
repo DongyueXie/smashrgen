@@ -19,8 +19,9 @@ smash_gen_pois(
   eps = "estimate",
   filter.number = 1,
   family = "DaubExPhase",
-  est_nugget_maxiter = 3,
-  est_nugget_tol = 0.001
+  homoskedastic = FALSE,
+  est_nugget_maxiter = 2,
+  est_nugget_tol = 0.01
 )
 }
 \arguments{

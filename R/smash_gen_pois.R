@@ -32,8 +32,9 @@ smash_gen_pois = function(x,
                           eps='estimate',
                           filter.number = 1,
                           family = "DaubExPhase",
-                          est_nugget_maxiter=3,
-                          est_nugget_tol=1e-3){
+                          homoskedastic = FALSE,
+                          est_nugget_maxiter=2,
+                          est_nugget_tol=1e-2){
   t_start = Sys.time()
 
   if(!ispowerof2(length(x))){
@@ -109,14 +110,30 @@ smash_gen_pois = function(x,
     fit = nugget_est(y,st,nug.init,nug.est.limit,smoother,filter.number = filter.number,family = family,est_nugget_maxiter,est_nugget_tol)
     nug.est = fit$nug.est
     mu.est = (fit$mu.res)[idx]
+    nug.est.trace = fit$nug.est.trace
   }else{
-    if(smoother=='smash'){
-      mu.est = smash.gaus(y)[idx]
+    if(homoskedastic){
+      sdest = sd_est_diff2(y)
+      if(transformation=='vst'){
+        sdest = max(sdest,0.5)
+      }
+      if(smoother=='smash'){
+        mu.est = smash.gaus(y,sigma = sdest)[idx]
+      }
+      if(smoother=='ti.thresh'){
+        mu.est = ti.thresh(y,sigma = sdest)[idx]
+      }
+    }else{
+      if(smoother=='smash'){
+        mu.est = smash.gaus(y)[idx]
+      }
+      if(smoother=='ti.thresh'){
+        mu.est = ti.thresh(y,method='rmad')[idx]
+      }
     }
-    if(smoother=='ti.thresh'){
-      mu.est = ti.thresh(y,method='rmad')[idx]
-    }
+
     nug.est = NULL
+    nug.est.trace = NULL
   }
 
   if(transformation == 'vst'){
@@ -127,8 +144,8 @@ smash_gen_pois = function(x,
 
   t_end = Sys.time()
   return(list(posterior=list(mean_smooth=lambda.est,
-                             mean_latent_smooth = mu.est),
-              fitted_g=list(sigma2=nug.est),
+                             mean_log_smooth = mu.est),
+              fitted_g=list(sigma2=nug.est,sigma2_trace = nug.est.trace),
               run_time = difftime(t_end,t_start,units='secs')))
   #return(list(lambda.est=lambda.est,mu.est=mu.est,nugget.est=nug.est))
 }
@@ -150,14 +167,16 @@ nugget_est=function(y,st,nug.init=NULL,nug.est.limit,method,filter.number,family
 
 
   if(is.null(nug.init)){
-    x.m=c(y[n],y,y[1])
-    st.m=c(st[n],st,st[1])
-    nug.init = ((x.m[2:(n+1)]-x.m[3:(n+2)])^2+(x.m[2:(n+1)]-x.m[1:(n)])^2-2*st.m[2:(n+1)]^2-st.m[1:(n)]^2-st.m[3:(n+2)]^2)/4
-    nug.init = mean(nug.init[top.idx])
+    #x.m=c(y[n],y,y[1])
+    #st.m=c(st[n],st,st[1])
+    #nug.init = ((x.m[2:(n+1)]-x.m[3:(n+2)])^2+(x.m[2:(n+1)]-x.m[1:(n)])^2-2*st.m[2:(n+1)]^2-st.m[1:(n)]^2-st.m[3:(n+2)]^2)/4
+    #nug.init = mean(nug.init[top.idx])
+    nug.init = sd_est_diff2(y)^2
     nug.init = max(0,nug.init)
   }
   #given st and nug to estimate mean
   nug.est = nug.init
+  nug.est.trace = nug.est
   for(iter in 1:maxiter){
 
     #print(nug.est)
@@ -176,19 +195,28 @@ nugget_est=function(y,st,nug.init=NULL,nug.est.limit,method,filter.number,family
     # update nugget effect
     nug.est.new=uniroot(normaleqn_nugget,c(-1e6,1e6),y=y[top.idx],mu=mu.est[top.idx],st=st[top.idx])$root
     nug.est.new = max(c(0,nug.est.new))
+    nug.est.trace[iter + 1] = nug.est.new
 
 
     if(abs(nug.est.new - nug.est)<=tol){
+      nug.est = nug.est.new
       break
     }else{
       nug.est = nug.est.new
     }
   }
 
-  return(list(mu.res = mu.est,mu.est.var=mu.est.var,nug.est=nug.est))
+  return(list(mu.res = mu.est,mu.est.var=mu.est.var,nug.est=nug.est,nug.est.trace=nug.est.trace))
 
 }
 
 ispowerof2 <- function (x){
   x >= 1 & 2^ceiling(log2(x)) == x
 }
+
+sd_est_diff2 = function (x){
+  n = length(x)
+  sqrt(2/(3 * (n - 2)) * sum((1/2 * x[1:(n - 2)] - x[2:(n - 1)] + 1/2 * x[3:n])^2))
+}
+
+
