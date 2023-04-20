@@ -15,11 +15,11 @@ ebps(
 )
 }
 \arguments{
-\item{x, s}{data vector and scaling factor}
+\item{x, s}{data vector and scaling factor. s can be a vector of the same length as x, or a scalar.}
 
-\item{g_init}{a list of sigma2, and g_smooth.}
+\item{g_init}{a list of initial value of sigma2, and g_smooth. g_smooth is the initial prior g of the smoothing method. Can be NULL.}
 
-\item{q_init}{a list of m, smooth. m is the posterior mean of mu, smooth the posteriro mean of b}
+\item{q_init}{a list of initial values of m, smooth. m is the posterior mean of mu, smooth the posterior mean of b. See the details below.}
 
 \item{init_control}{See function ebps_init_control_default}
 

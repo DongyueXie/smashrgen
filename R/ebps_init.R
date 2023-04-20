@@ -43,9 +43,13 @@ ebps_init = function(x,s,
 
   if(is.null(g_init$sigma2)){
     if(is.null(q_init$smooth)){
-      g_init$sigma2 = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g=c(T,F))$fitted_g$var
+      # q_init$smooth =
+      #g_init$sigma2 = ebpm_normal(x,s,g_init = list(mean=log(sum(x)/sum(s)),var=NULL),fix_g=c(T,F))$fitted_g$var
+      #g_init$sigma2 = sd_est_diff2(q_init$m)^2
+      q_init$smooth = smash.gaus(q_init$m)
+      g_init$sigma2 = var(q_init$m - q_init$smooth)
     }else{
-      g_init$sigma2 = var(m_init - q_init$smooth)
+      g_init$sigma2 = var(q_init$m - q_init$smooth)
     }
   }
 

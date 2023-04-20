@@ -116,4 +116,82 @@ plot(fit$fitted_g$sigma2_trace)
 
 
 
+###########
+m = smash.poiss(y,log = T)
+yhat = smash.gaus(m,sigma=sd_est_diff2(m))
+yhat = smash.gaus(m,v.est = T,joint = T)
+plot(y,col='grey80',pch=19)
+lines(exp(yhat$mu.res))
+lines(fit_vst$posterior$mean_smooth)
 
+set.seed(12345)
+n = 512
+mu = c(rep(-2,n/4),rep(0,n/4),rep(-2,n/2))
+ss = runmed(yhat$mu.res,k=31)
+mu = c(rep(-3,40),ss,rep(-3,47))
+sigma2 = mean(yhat$var.res)
+lambda = exp(mu+rnorm(n,0,sqrt(sigma2)))
+y = rpois(n,lambda)
+plot(y,col='grey80',pch=19)
+lines(exp(mu))
+
+lines(exp(smash.gaus(smash.poiss(y,log=T))),col=2)
+
+fit_split = ebps(y, init_control = list(m_init_method='vga'),
+                             smooth_control = list(wave_trans='ndwt',
+                                                   ndwt_method = 'smash'),
+                             general_control = list(maxiter=20,printevery=1,verbose=T))
+
+plot(y,col='grey80',pch=19)
+lines(exp(mu),col='grey60')
+lines(fit_split$posterior$mean_smooth)
+fit_split$elbo_trace
+
+############ chip ###########
+plot(y,col='grey80',pch=19)
+y2 = extend(y)
+y2 = y2$x
+plot(y2,col='grey80',pch=19)
+fit_split = ebps(y2, init_control = list(m_init_method='vga'),
+                 smooth_control = list(wave_trans='ndwt',
+                                       ndwt_method = 'smash'),
+                 general_control = list(maxiter=30,printevery=1,verbose=T))
+lines(fit_split$posterior$mean_smooth)
+plot(fit_split$fitted_g$sigma2_trace)
+plot(fit_split$posterior$mean_log_smooth)
+
+
+
+# generate data from split results
+y_fake = rpois(length(y2),exp(fit_split$posterior$mean_log_smooth+rnorm(length(y2),sd=sqrt(fit_split$fitted_g$sigma2))))
+plot(y_fake)
+cor(y2,y_fake)
+
+
+
+mu_hat_two_step = (smash.gaus((smash.poiss(y2,log = T)),v.est = T,joint=T))
+y_fake = rpois(length(y2),exp(mu_hat_two_step$mu.res+rnorm(length(y2),sd=sqrt(mu_hat_two_step$var.res))))
+cor(y2,y_fake)
+plot(y_fake,col='grey80',pch=19)
+lines(exp(mu_hat_two_step$mu.res),col='grey60')
+lines(exp(smash.gaus((smash.poiss(y_fake,log=T)))))
+# init
+init = ebpm_normal(y_fake,1,g_init = list(mean=log(mean(y)),var=NULL),fix_g = c(T,F))
+
+plot(init$posterior$mean_log)
+lines(smash.gaus(init$posterior$mean_log))
+lines(smash.gaus(init$posterior$mean_log,sigma=sqrt(init$fitted_g$var)))
+
+plot(y_fake)
+lines(exp(smash.gaus(init$posterior$mean_log,sigma=sqrt(init$fitted_g$var))))
+lines(exp(smash.gaus(init$posterior$mean_log)))
+
+fit_split = ebps(y_fake, init_control = list(m_init_method='smash_poi'),
+                 smooth_control = list(wave_trans='dwt',
+                                       ndwt_method = 'smash'),
+                 general_control = list(maxiter=300,printevery=1,verbose=T))
+plot(y_fake,col='grey80',pch=19)
+lines(exp(mu_hat_two_step$mu.res),col='grey60')
+lines(fit_split$posterior$mean_smooth,col='grey80',pch=19)
+plot(fit_split$fitted_g$sigma2_trace)
+fit_split$fitted_g$sigma2_trace

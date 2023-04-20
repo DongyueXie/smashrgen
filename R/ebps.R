@@ -1,7 +1,7 @@
 #'@title empirical Bayes Poisson smoothing
-#'@param x,s data vector and scaling factor
-#'@param g_init a list of sigma2, and g_smooth.
-#'@param q_init a list of m, smooth. m is the posterior mean of mu, smooth the posteriro mean of b
+#'@param x,s data vector and scaling factor. s can be a vector of the same length as x, or a scalar.
+#'@param g_init a list of initial value of sigma2, and g_smooth. g_smooth is the initial prior g of the smoothing method. Can be NULL.
+#'@param q_init a list of initial values of m, smooth. m is the posterior mean of mu, smooth the posterior mean of b. See the details below.
 #'@param init_control See function ebps_init_control_default
 #'@param general_control See function ebps_general_control_default
 #'@param smooth_control See function ebps_smooth_control_default
@@ -55,8 +55,7 @@ ebps = function(x,
                        general_controls$make_power_of_2,
                        g_init,
                        q_init,
-                       init_controls$m_init_method
-                       )
+                       init_controls$m_init_method)
 
   sigma2 = init_val$g_init$sigma2
   m = init_val$q_init$m
@@ -73,12 +72,13 @@ ebps = function(x,
   const = sum(lfactorial(x))
   v = rep(sigma2/2,length(x))
 
-  if(smooth_controls$wave_trans=='ndwt' | smooth_controls$robust){
+  if(smooth_controls$wave_trans=='ndwt'&smooth_controls$ndwt_method=='ti.thresh' | smooth_controls$robust){
     general_controls$convergence_criteria = 'nugabs'
   }
   if(smooth_controls$wave_trans=='dwt'&is.null(smooth_controls$W)&(smooth_controls$filter.number != 1 | smooth_controls$family != 'DaubExPhase')){
     smooth_controls$W = (t(GenW(n,filter.number,family)))[-1,]
   }
+
 
   obj = -Inf
   s_update = list(Eb=Eb,
@@ -172,6 +172,7 @@ ebps = function(x,
                                mean_smooth = exp(s_update$Eb)[idx],
                                mean_log_smooth=s_update$Eb[idx]),
                 log_likelihood = NULL,
+                elbo_trace = obj/n*n_orig,
                 fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
                 run_time = difftime(t_end,t_start,units='secs')))
   }
@@ -216,9 +217,13 @@ ebps_smooth_update = function(m,sigma2,
   }
   if(wave_trans=='ndwt'){
     if(ndwt_method=='smash'){
-      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,ebnm_param=ebnm_params,post.var = TRUE)
+      qb = smash.gaus(m,sqrt(sigma2),filter.number=filter.number,family=family,
+                      ebnm_param=ebnm_params,
+                      post.var = TRUE,
+                      return.loglr = T)
       Eb = qb$mu.est
       Eb2 = Eb^2+qb$mu.est.var
+      qb$dKL = qb$loglik - Eloglik(m,rep(sqrt(sigma2),length(m)),Eb,Eb2)
     }
     if(ndwt_method=='ti.thresh'){
       Eb = ti.thresh(m,sqrt(sigma2),filter.number=filter.number,family=family)
