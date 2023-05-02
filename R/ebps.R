@@ -122,6 +122,7 @@ ebps = function(x,
       sigma2_trace = c(sigma2_trace,sigma2_new)
       if(general_controls$convergence_criteria=='nugabs'){
         if(abs(sigma2_new-sigma2)<general_controls$tol){
+          sigma2 = sigma2_new
           break
         }
       }
@@ -167,14 +168,25 @@ ebps = function(x,
                 log_likelihood = obj[length(obj)]/n*n_orig,
                 run_time = difftime(t_end,t_start,units='secs')))
   }else{
-    return(list(posterior=list(mean = exp(m+v/2)[idx],
-                               mean_log = m[idx],
-                               mean_smooth = exp(s_update$Eb)[idx],
-                               mean_log_smooth=s_update$Eb[idx]),
-                log_likelihood = NULL,
-                elbo_trace = obj/n*n_orig,
-                fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
-                run_time = difftime(t_end,t_start,units='secs')))
+    if(smooth_controls$ndwt_method=='smash'){
+      return(list(posterior=list(mean = exp(m+v/2)[idx],
+                                 mean_log = m[idx],
+                                 mean_smooth = exp(s_update$Eb)[idx],
+                                 mean_log_smooth=s_update$Eb[idx]),
+                  log_likelihood = obj[length(obj)]/n*n_orig,
+                  elbo_trace = obj/n*n_orig,
+                  fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
+                  run_time = difftime(t_end,t_start,units='secs')))
+    }else{
+      return(list(posterior=list(mean = exp(m+v/2)[idx],
+                                 mean_log = m[idx],
+                                 mean_smooth = exp(s_update$Eb)[idx],
+                                 mean_log_smooth=s_update$Eb[idx]),
+                  log_likelihood = NULL,
+                  obj_trace = obj/n*n_orig,
+                  fitted_g = list(sigma2=sigma2,sigma2_trace=sigma2_trace),
+                  run_time = difftime(t_end,t_start,units='secs')))
+    }
   }
 }
 
