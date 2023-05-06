@@ -21,6 +21,42 @@
 #'\deqn{\lambda_i = \exp(\mu_i)),}
 #'\deqn{\mu_i\sim N(b_i,\sigma^2),}
 #'\deqn{\b_i\sim g(.).}
+#'
+#'The \code{init_control} argument is a list in which any of the following
+#'named components will override the default algorithm settings (as
+#'defined by \code{ebps_init_control_default}):
+#'
+#'\describe{
+#'\item{\code{m_init_method}}{'vga' or 'smash_poi'}
+#'}
+#'
+#'The \code{general_control} argument is a list in which any of the following
+#'named components will override the default algorithm settings (as
+#'defined by \code{ebps_general_control_default}):
+#'
+#'\describe{
+#'\item{\code{est_sigma2}}{whether estiamte sigma2 or fix it}
+#'\item{\code{maxiter}}{max iteration of the main algorithm, default is 100}
+#'\item{\code{maxiter_vga}}{max iteration of the vga step}
+#'\item{\code{vga_tol}}{tolerance for vga step stopping}
+#'\item{\code{verbose}}{print progress?}
+#'\item{\code{tol}}{tolerance for stopping the main algorithm}
+#'\item{\code{convergence_criteria}}{'objabs' or 'nugabs'}
+#'\item{\code{make_power_of_2}}{'reflect' or 'extend'}
+#'\item{\code{plot_updates}}{internal use only}
+#'}
+#'
+#'The \code{smooth_control} argument is a list in which any of the following
+#'named components will override the default algorithm settings (as
+#'defined by \code{ebps_smooth_control_default}):
+#'
+#'\describe{
+#'\item{\code{wave_trans}}{'dwt' or 'ndwt'}
+#'\item{\code{ndwt_method}}{'smash' or 'ti.thresh'}
+#'\item{\code{ebnm_params}}{parameters for ebnm used in wavelet smoothing}
+#'\item{\code{warmstart}}{init posterior using last iteration's results}
+#'\item{\code{W}}{DWT matrix for non-haar wavelet basis}
+#'}
 #'@import vebpm
 #'@import wavethresh
 #'@import smashr
@@ -121,6 +157,11 @@ ebps = function(x,
       sigma2_new = mean(m^2+v+s_update$Eb2+s_update$E_out2+2*s_update$Eb*s_update$E_out-2*m*(s_update$Eb+s_update$E_out))
       sigma2_trace = c(sigma2_trace,sigma2_new)
       if(general_controls$convergence_criteria=='nugabs'){
+        if(general_controls$verbose){
+          if(iter%%general_controls$printevery==0){
+            print(paste("Done iter",iter,"sigma2 =",sigma2_new))
+          }
+        }
         if(abs(sigma2_new-sigma2)<general_controls$tol){
           sigma2 = sigma2_new
           break
