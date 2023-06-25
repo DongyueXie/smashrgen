@@ -7,5 +7,8 @@
 GP(x, s2, init_val = NULL)
 }
 \description{
-Define the empirical Bayes function
+
+}
+\details{
+
 }
