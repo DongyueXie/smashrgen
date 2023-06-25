@@ -1,4 +1,83 @@
 set.seed(12345)
+n=2^11
+sigma=0
+mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
+x = rpois(length(mu),exp(log(mu)+rnorm(length(mu),sd=sigma)))
+split_vga_dwt = try(ebps(x,
+                         init_control = list(m_init_method='vga'),
+                         smooth_control = list(wave_trans='dwt'),
+                         general_control = list(maxiter=1000,tol=1e-10,printevery=10,verbose=T)))
+plot(x,col='grey80',pch=20)
+lines(mu,col='grey50')
+lines(split_vga_dwt$posterior$mean_smooth)
+split_vga_dwt$log_likelihood
+split_vga_dwt$fitted_g$sigma2_trace
+
+plot(split_vga_dwt$posterior$mean_log_smooth,split_vga_dwt$posterior$mean_log,col='grey80')
+abline(a=0,b=1)
+
+plot(split_vga_dwt$posterior$var_log)
+plot(split_vga_dwt$posterior$var_log_smooth)
+
+split_vga_dwt0 = try(ebps(x,
+                         init_control = list(m_init_method='vga'),
+                         smooth_control = list(wave_trans='dwt'),
+                         general_control = list(maxiter=1,tol=1e-10,printevery=10,verbose=T)))
+plot(x,col='grey80',pch=20)
+lines(mu,col='grey50')
+lines(split_vga_dwt0$posterior$mean_smooth)
+split_vga_dwt0$log_likelihood
+split_vga_dwt0$fitted_g$sigma2_trace
+
+plot(split_vga_dwt0$posterior$mean_log_smooth,split_vga_dwt0$posterior$mean_log,col='grey80')
+abline(a=0,b=1)
+
+plot(split_vga_dwt0$posterior$var_log)
+plot(split_vga_dwt0$posterior$var_log_smooth)
+
+plot_densities <- function(mu0, sigma0, mu1, sigma1, x_low, x_high) {
+  # Create a sequence of x values
+  x <- seq(from = x_low, to = x_high, by = 0.01)
+
+  # Compute density values for the two normal distributions
+  density0 <- dnorm(x, mean = mu0, sd = sigma0)
+  density1 <- dnorm(x, mean = mu1, sd = sigma1)
+
+  # Plot the densities
+  plot(x, density0, type = "l", col = "blue",
+       xlab = "x", ylab = "Density",
+       main = "Normal Densities", ylim = c(0, max(density0, density1)))
+  lines(x, density1, type = "l", col = "red")
+
+  # Add a legend
+  legend("topright", legend = c("Density 0", "Density 1"),
+         lty = c(1, 1), col = c("blue", "red"))
+}
+
+
+# Test the function
+ii = 1330
+plot_densities(mu0 = split_vga_dwt0$posterior$mean_log_smooth[ii],
+               sigma0 = sqrt(split_vga_dwt0$posterior$var_log_smooth[ii]),
+               mu1 = split_vga_dwt0$posterior$mean_log[ii],
+               sigma1 = sqrt(split_vga_dwt0$posterior$var_log[ii]),
+               1,5)
+
+
+plot_densities(mu0 = split_vga_dwt$posterior$mean_log_smooth[ii],
+               sigma0 = sqrt(split_vga_dwt$posterior$var_log_smooth[ii]),
+               mu1 = split_vga_dwt$posterior$mean_log[ii],
+               sigma1 = sqrt(split_vga_dwt$posterior$var_log[ii]),
+               1,5)
+
+
+
+
+#############################
+#############################
+#############################
+
+set.seed(12345)
 n=2^9+100
 sigma=0.5
 mu=c(rep(0.3,n/4), rep(3, n/4), rep(10, n/4), rep(0.3, n/4))
