@@ -112,13 +112,14 @@ Eloglik = function(x, s, Et, Et2) {
   return(-0.5 * sum(log(2*pi*s^2) + (1/s^2) * (Et2 - 2*x*Et + x^2)))
 }
 
+#'@importFrom ebnm ebnm_output_default
 ebnm_params_default_plr = function(){
   return(list(prior_family='normal_scale_mixture',
               mode=0,
               scale = "estimate",
               g_init = NULL,
               fix_g = FALSE,
-              output = output_default(),
+              output = ebnm_output_default(),
               optmethod = NULL,
               control = NULL))
 }
