@@ -1,7 +1,7 @@
 Package: smashrgen
 Type: Package
 Title: Generalization of smashr
-Version: 1.2.5
+Version: 1.2.6
 Author: Dongyue Xie
 Maintainer: Dongyue Xie <dongyxie@gmail.com>
 Description: Generalization of smashr
@@ -9,12 +9,16 @@ License: MIT
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
-Depends:
+Imports:
         smashr,
+        ebnm,
         ashr,
         caTools,
         MASS,
-        wavethresh
+        wavethresh,
+        vebpm,
+        mr.ash,
+        mvtnorm
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
