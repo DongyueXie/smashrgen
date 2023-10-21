@@ -29,7 +29,12 @@ ebps_twostep = function(x,
                        general_control,
                        smooth_control)
   m = splitting_res$posterior$mean_log
-  fit_smash = smash.gaus(m,homoskedastic = homo,v.est = T)
+  if(homo){
+    fit_smash = smash.gaus(m,homoskedastic = homo,v.est = T)
+  }else{
+    fit_smash = smash.gaus(m)
+  }
+
   t_end = Sys.time()
   return(list(posterior=list(mean_smooth = exp(fit_smash),
                              mean_log_smooth=fit_smash),
