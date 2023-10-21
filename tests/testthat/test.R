@@ -1,3 +1,24 @@
+####################################
+########## test ebps two step
+set.seed(12345)
+n=2^9
+sigma=0.5
+mu=c(rep(0.3,n/4), rep(1, n/4), rep(2, n/4), rep(0.3, n/4))
+x = rpois(length(mu),exp(log(mu)+rnorm(length(mu),sd=sigma)))
+res = ebps_twostep(x,
+                   init_control = list(m_init_method='vga'),
+                   smooth_control = list(wave_trans='ndwt',ndwt_method='smash'),
+                   general_control = list(maxiter=1000,tol=1e-10,printevery=10,verbose=T))
+res_ebps = ebps(x,
+                init_control = list(m_init_method='vga'),
+                smooth_control = list(wave_trans='ndwt',ndwt_method='smash'),
+                general_control = list(maxiter=1000,tol=1e-10,printevery=10,verbose=T))
+plot(x,col='grey80',pch=20)
+lines(mu,col='grey50')
+lines(res$posterior$mean_smooth)
+lines(res_ebps$posterior$mean_smooth,col=3)
+
+####################################
 set.seed(12345)
 n=2^11
 sigma=0

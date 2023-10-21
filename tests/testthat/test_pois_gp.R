@@ -1,12 +1,12 @@
 set.seed(1234)
-n = 300
+n = 100
 mu = sin(2 * pi * (1:n)/n)
 mu = mu - min(mu)
-mu = mu * 200+ 0.1
-x = rpois(length(mu),mu)
-fit = Pois_GP(x,maxiter=200)
+mu = mu * 3+ 0.1
+x = rpois(length(mu),exp(log(mu)+rnorm(n,0,0.5)))
+fit = Pois_GP(x,maxiter=30)
 
-plot(fit$obj_trace,type='l')
+plot(fit$elbo_trace,type='l')
 plot(fit$fitted_g$sigma2_trace,type='l',ylim=c(-0.1,max(fit$fitted_g$sigma2_trace)))
 fit$fitted_g$sigma2
 
