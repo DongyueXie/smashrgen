@@ -2,15 +2,16 @@
 % Please edit documentation in R/sgp.R
 \name{sgp}
 \alias{sgp}
-\title{Sparse Gaussian Process via VFE}
+\title{Fit Sparse Gaussian Process via variational inference}
 \usage{
 sgp(
-  X,
   y,
-  X_ind,
-  kernel_func = RBFkernel,
+  X = NULL,
+  X_ind = NULL,
+  m = 10,
+  kernel_func = Maternkernel,
   kernel_param = c(0, 0),
-  mu = NULL,
+  mu = 0,
   s2 = NULL,
   sigma2 = 1,
   opt_method = "L-BFGS-B",
@@ -19,9 +20,36 @@ sgp(
   fix_sigma2 = F,
   fix_mu = F,
   l_b = -Inf,
-  r_b = Inf
+  r_b = Inf,
+  Jitter = 1e-05,
+  n_restart = 5
 )
 }
+\arguments{
+\item{X, y}{training data X and response y.}
+
+\item{X_ind}{inducing point locations.}
+
+\item{m}{default number of X_ind is 10, if X_ind is not given as an input}
+
+\item{kernel_func, kernel_param}{Kernel functions to use, and their parameters}
+
+\item{mu}{prior mean}
+
+\item{s2}{known variances}
+
+\item{sigma2}{noise variance}
+
+\item{opt_method}{optimization method for estimating prior parameters in `optim`}
+
+\item{l_b, r_b}{lower and upper bound of prior parameters}
+
+\item{Jitter}{added to diagonal of the Kernel matrix for numerical stability}
+
+\item{n_restart}{number of re-start of different kernel params values}
+
+\item{fix_}{whether fix those parameters}
+}
 \description{
-Sparse Gaussian Process via VFE
+Fit Sparse Gaussian Process via variational inference
 }
