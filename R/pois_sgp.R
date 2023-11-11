@@ -1,5 +1,85 @@
+
+#'@title Poisson SGP
+#'@param x A vector of Poisson observations.
+#'@param s A vector of scaling factors for Poisson observations
+#'@param g_init a list of prior parameters: X_ind, kernel_param, mu, kernel_func
+#'@param fix_g a boolean or a vector of boolean of length 3. If TRUE, set the corresponding prior at g_init.
+#'@param q_init a list of init values of posterior: mean, var
+#'@param control a list of other parameters passed to the `pois_sgp` function.
+#'@export
+ebpm_pois_sgp = function(x,s=1,g_init=NULL,fix_g=FALSE,q_init=NULL,control=list()){
+  if(!is.null(g_init)){
+    X_ind = g_init$X_ind
+    kernel_param = g_init$kernel_param
+    mu=g_init$mu
+    kernel_func=g_init$kernel_func
+  }else{
+    X_ind = NULL
+    kernel_param = NULL
+    mu = NULL
+    kernel_func = Maternkernel
+  }
+  if(!is.null(q_init)){
+    post_mean = q_init$mean
+    V = q_init$var
+  }else{
+    post_mean = NULL
+    V = NULL
+  }
+  if(length(fix_g)>1){
+    fix_X_ind = fix_g[1]
+    fix_kernel_param = fix_g[2]
+    fix_mu = fix_g[3]
+  }else{
+    if(fix_g){
+      fix_X_ind = T
+      fix_kernel_param = T
+      fix_mu = T
+    }else{
+      fix_X_ind = T
+      fix_kernel_param = F
+      fix_mu = F
+    }
+  }
+  controls = modifyList(ebpm_pois_sgp_control_default(),control,keep.null = TRUE)
+  res = pois_sgp(x,X=controls$X,X_ind=X_ind,m=controls$m,
+                            post_mean=post_mean,V=V,
+                            kernel_func=kernel_func,
+                            kernel_param=kernel_param,
+                            mu=mu,
+                            s=s,
+                            opt_method=controls$opt_method,
+                            fix_X_ind=fix_X_ind,fix_kernel_param=fix_kernel_param,fix_mu=fix_mu,
+                            maxiter=controls$maxiter,tol=controls$tol,
+                            maxiter_mean=controls$maxiter_mean,tol_mean=controls$tol_mean,
+                            maxiter_V=controls$maxiter_V,tol_V=controls$tol_V,
+                            l_b=controls$l_b,r_b=controls$r_b,
+                            Jitter=controls$Jitter,
+                            verbose=controls$verbose,printevery=controls$printevery)
+  return(list(posterior=list(mean=res$posterior$rate,
+                             mean_log=res$posterior$mean,
+                             sd=res$posterior$rate_sd,
+                             sd_log = res$posterior$sd,
+                             mean_log_ind=res$posterior$mean_ind,
+                             v_log_ind=res$posterior$V_ind),
+              log_likelihood = res$elbo,
+              fitted_g=res$fitted_g))
+}
+
+ebpm_pois_sgp_control_default = function(){
+  list(X=NULL,
+       m=30,
+       opt_method='L-BFGS-B',maxiter=100,tol=1e-5,
+       maxiter_mean=100,tol_mean=1e-5,
+       maxiter_V=100,tol_V=1e-5,
+       l_b=-Inf,r_b=Inf,
+       Jitter=1e-5,
+       verbose=F,printevery=1)
+}
+
 #'@title Sparse Gaussian process for Poisson data via variational inference
 #'@param y count vector
+#'@export
 pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
                     post_mean=NULL,V=NULL,
                     kernel_func=Maternkernel,
@@ -27,8 +107,12 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
   m = length(X_ind)
   n_kernel_param = length(kernel_param)
   if(is.null(s)){s = rep(1,n)}
+  if(length(s)==1){s = rep(s,n)}
   if(is.null(post_mean)|is.null(V)|is.null(kernel_param)){
-    temp = sgp(log(1+y/s),X,X_ind,mu=mean(log(1+y/s)),fix_x_ind = T,fix_mu = T,kernel_func = kernel_func)
+    #temp = sgp(log(1+y/s),X,X_ind,mu=mean(log(1+y/s)),fix_x_ind = T,fix_mu = T,kernel_func = kernel_func)
+    #ly = smash.poiss(y/s,log=T)
+    temp = sgp(log(1+y/s),X,X_ind,mu=NULL,fix_x_ind = T,kernel_func = kernel_func)
+    mu = temp$fitted_g$mu
     if(is.null(post_mean)){
       post_mean = temp$posterior$mean_ind
     }
@@ -40,7 +124,7 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
     }
   }
   if(is.null(mu)){
-    mu = mean(log(1+y/s))
+    mu = log(sum(y)/sum(s))
   }
   if(l_b[1]==-Inf){
     l_b = c(rep(X_range[1],m),rep(-6,n_kernel_param))
@@ -49,7 +133,8 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
     r_b=c(rep(X_range[2],m),rep(6,n_kernel_param))
   }
 
-  elbo_tace = -Inf
+  elbo_tace = pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter)
+  #print(paste("elbo init:",round(elbo_tace,3)))
   for(iter in 1:maxiter){
     # update post mean
     post_mean = pois_sgp_update_post_mean(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=maxiter_mean,tol=tol_mean,Jitter=Jitter)
@@ -88,7 +173,9 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
 
 pois_sgp_update_prior = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,
                                  fix_kernel_param,fix_X_ind,m,n_kernel_param,opt_method,l_b,r_b,Jitter){
+  elbo_old = pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
   if(!(fix_kernel_param&fix_X_ind)){
+    # if only optimize kernel_param
     if(fix_X_ind&(!fix_kernel_param)){
       res = try(optim(kernel_param,pois_sgp_obj_for_optim_kernel_only,
                   X=X,y=y,s=s,X_ind=X_ind,
@@ -96,20 +183,39 @@ pois_sgp_update_prior = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,
                   lower = rep(-6,n_kernel_param),upper = rep(6,n_kernel_param),Jitter=Jitter,
                   method = opt_method))
       if(class(res)!='try-error'){
-        kernel_param = res$par
+        if((-res$value)>elbo_old){
+          kernel_param = res$par
+        }
       }
     }else{
+      # optimize both X_ind and kernel_param
       res = try(optim(c(X_ind,kernel_param),pois_sgp_obj_for_optim,
                   m=m,n_kernel_param=n_kernel_param,X=X,y=y,s=s,X_ind=X_ind,kernel_param=kernel_param,
                   kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,fix_X_ind=fix_X_ind,fix_kernel_param=fix_kernel_param,
                   lower = l_b,upper = r_b,Jitter=Jitter,
                   method = opt_method))
       if(class(res)!="try-error"){
-        if(!fix_X_ind){
-          X_ind = res$par[1:m]
-        }
-        if(!fix_kernel_param){
-          kernel_param = res$par[(m+1):(m+n_kernel_param)]
+        if((-res$value)>elbo_old){
+          if(!fix_X_ind){
+            X_ind = res$par[1:m]
+          }
+          if(!fix_kernel_param){
+            kernel_param = res$par[(m+1):(m+n_kernel_param)]
+          }
+        }else{
+          # if optim not working well when optimizing both X_ind, and kernel param, only optimize kernel_param
+          if(!fix_kernel_param&!fix_X_ind){
+            res = try(optim(kernel_param,pois_sgp_obj_for_optim_kernel_only,
+                            X=X,y=y,s=s,X_ind=X_ind,
+                            kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,
+                            lower = rep(-6,n_kernel_param),upper = rep(6,n_kernel_param),Jitter=Jitter,
+                            method = opt_method))
+            if(class(res)!='try-error'){
+              if((-res$value)>elbo_old){
+                kernel_param = res$par
+              }
+            }
+          }
         }
       }
     }
@@ -119,20 +225,10 @@ pois_sgp_update_prior = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,
   return(list(X_ind = X_ind,kernel_param=kernel_param))
 }
 
+
 pois_sgp_update_mu = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_mu,Jitter){
   if(!fix_mu){
-    n = length(y)
-    m = length(X_ind)
-    Knm = kernel_func(X,X_ind,kernel_param)
-    Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
-    Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
-    L_Kmm = t(chol(Kmm))
-    L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
-    Kmm_inv = crossprod(L_Kmm_inv)
-    A = Knm%*%Kmm_inv
-    L_V = t(chol(V))
-    Ab = drop(A%*%post_mean)
-    delta = s*exp(Ab+rowSums((A%*%L_V)^2)/2+Knn_diag/2-rowSums((Knm%*%t(L_Kmm_inv))^2)/2)
+    delta = pois_sgp_matrix_helper(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)$delta
     mu = log(sum(y)/sum(delta))
   }
   #print(pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu))
@@ -141,6 +237,7 @@ pois_sgp_update_mu = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,m
 
 pois_sgp_update_V = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter){
   V_old = V
+  n = length(y)
   elbo_old = pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
   for(i in 1:maxiter){
     V = solve(-grad_post_mean(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V_old,mu,return_grad=F,return_hess=T,Jitter))
@@ -150,15 +247,15 @@ pois_sgp_update_V = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu
     # if(norm(V-V_old,type ='2')<tol){
     #   break
     # }
-    if((elbo-elbo_old)<tol){
+    if((elbo-elbo_old)/n<tol){
       break
     }else{
       V_old = V
     }
   }
-  if(i==maxiter){
-    print("max iteration reached when updating posterior variance")
-  }
+  # if(i==maxiter){
+  #   print("max iteration reached when updating posterior variance")
+  # }
   if((elbo-elbo_old)<0){
     return(V_old)
   }else{
@@ -169,6 +266,7 @@ pois_sgp_update_V = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu
 pois_sgp_update_post_mean = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter){
   post_mean_old = post_mean
   elbo_old = pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  n = length(y)
   for(iter in 1:maxiter){
     grad_hess = grad_post_mean(X,y,s,X_ind,kernel_param,kernel_func,post_mean_old,V,mu,return_grad=T,return_hess=T,Jitter)
     grad = -grad_hess$grad
@@ -181,15 +279,15 @@ pois_sgp_update_post_mean = function(X,y,s,X_ind,kernel_param,kernel_func,post_m
     # if(norm(post_mean-post_mean_old,type='2')<tol){
     #   break
     # }
-    if((elbo-elbo_old)<tol){
+    if((elbo-elbo_old)/n<tol){
       break
     }else{
       post_mean_old = post_mean
     }
   }
-  if(iter==maxiter){
-    print("max iteration reached when updating posterior mean")
-  }
+  # if(iter==maxiter){
+  #   print("max iteration reached when updating posterior mean")
+  # }
   if((elbo-elbo_old)<0){
     return(post_mean_old)
   }else{
@@ -198,28 +296,16 @@ pois_sgp_update_post_mean = function(X,y,s,X_ind,kernel_param,kernel_func,post_m
 }
 
 grad_post_mean = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,return_grad=T,return_hess=T,Jitter){
-  n = length(y)
-  m = length(X_ind)
-  Knm = kernel_func(X,X_ind,kernel_param)
-  Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
-  Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
-  L_Kmm = t(chol(Kmm))
-  L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
-  Kmm_inv = crossprod(L_Kmm_inv)
-  A = Knm%*%Kmm_inv
-  L_V = t(chol(V))
-  Ab = drop(A%*%post_mean)
-
-  delta = s*exp(Ab+rowSums((A%*%L_V)^2)/2+Knn_diag/2-rowSums((Knm%*%t(L_Kmm_inv))^2)/2)
+  temp = pois_sgp_matrix_helper(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)
   if(return_grad&return_hess){
-    grad = crossprod(A,y-exp(mu)*delta)-Kmm_inv%*%post_mean
-    hess = -exp(mu)*crossprod(A*sqrt(delta))-Kmm_inv
+    grad = crossprod(temp$A,y-exp(mu)*temp$delta)-temp$Kmm_inv%*%post_mean
+    hess = -exp(mu)*crossprod(temp$A*sqrt(temp$delta))-temp$Kmm_inv
     return(list(grad=grad,hess=hess))
   }else if(return_grad){
-    grad = crossprod(A,y-exp(mu)*delta)-Kmm_inv%*%post_mean
+    grad = crossprod(temp$A,y-exp(mu)*temp$delta)-temp$Kmm_inv%*%post_mean
     return(grad)
   }else if(return_hess){
-    hess = -exp(mu)*crossprod(A*sqrt(delta))-Kmm_inv
+    hess = -exp(mu)*crossprod(temp$A*sqrt(temp$delta))-temp$Kmm_inv
     return(hess)
   }else{
     return(NULL)
@@ -229,18 +315,9 @@ grad_post_mean = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,re
 
 
 pois_sgp_elbo = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
-  n = length(y)
   m = length(X_ind)
-  Knm = kernel_func(X,X_ind,kernel_param)
-  Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
-  Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
-  L_Kmm = t(chol(Kmm))
-  L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
-  Kmm_inv = crossprod(L_Kmm_inv)
-  A = Knm%*%Kmm_inv
-  L_V = t(chol(V))
-  Ab = drop(A%*%post_mean)
-  obj = sum(y*Ab)+mu*sum(y)-exp(mu)*sum(s*exp(Ab+rowSums((A%*%L_V)^2)/2+Knn_diag/2-rowSums((Knm%*%t(L_Kmm_inv))^2)/2))+sum(y*log(s))-sum(lfactorial(y))-sum(log(diag(L_Kmm)))/2 - sum((L_Kmm_inv%*%post_mean)^2)/2 - sum((L_Kmm_inv%*%L_V)^2)/2+sum(log(diag(L_V)))/2-m/2*log(2*pi)+m/2
+  temp = pois_sgp_matrix_helper(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)
+  obj = sum(y*temp$Ab)+mu*sum(y)-exp(mu)*sum(temp$delta)+sum(y*log(s))-sum(lfactorial(y))-sum(log(diag(temp$L_Kmm)))/2 - sum((temp$L_Kmm_inv%*%post_mean)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2+sum(log(diag(temp$L_V)))/2-m/2*log(2*pi)+m/2
   return(drop(obj))
 }
 
@@ -264,19 +341,54 @@ pois_sgp_obj_for_optim_kernel_only = function(kernel_param,X,y,s,X_ind,kernel_fu
 }
 
 pois_sgp_get_posterior = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
-  n = length(y)
+  temp = pois_sgp_matrix_helper(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=F)
+  v = temp$Knn_diag - rowSums((temp$Knm%*%t(temp$L_Kmm_inv))^2)  + rowSums((temp$A%*%temp$L_V)^2)
+  return(list(mean=temp$Ab+mu,var=v,rate=exp(mu+temp$Ab+v/2),rate_v = (exp(v)-1)*exp(2*(temp$Ab+mu)+v)))
+}
+
+#'@title Helper function for matrix calculations
+pois_sgp_matrix_helper = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T){
   Knm = kernel_func(X,X_ind,kernel_param)
   Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
   Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
-  L_Kmm = chol(Kmm)
-  L_Kmm_inv = backsolve(L_Kmm,diag(ncol(Kmm)))
-  Kmm_inv = tcrossprod(L_Kmm_inv)
+  L_Kmm = t(chol(Kmm))
+  L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
+  Kmm_inv = crossprod(L_Kmm_inv)
   A = Knm%*%Kmm_inv
   L_V = t(chol(V))
   Ab = drop(A%*%post_mean)
-  v = Knn_diag - rowSums((Knm%*%L_Kmm_inv)^2)  + rowSums((A%*%L_V)^2)
-  return(list(mean=Ab,var=v,rate=exp(mu)*exp(Ab+v/2),rate_v = (exp(v)-1)*exp(2*Ab+v)))
+  if(get_delta){
+    delta=s*exp(Ab+rowSums((A%*%L_V)^2)/2+Knn_diag/2-rowSums((Knm%*%t(L_Kmm_inv))^2)/2)
+  }else{
+    delta=NULL
+  }
+  return(list(delta=delta,
+              Knm=Knm,
+              Kmm=Kmm,
+              Knn_diag=Knn_diag,
+              L_Kmm=L_Kmm,
+              L_Kmm_inv=L_Kmm_inv,
+              Kmm_inv=Kmm_inv,
+              A=A,
+              L_V=L_V,
+              Ab=Ab))
 }
+
+# pois_sgp_get_posterior = function(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
+#   n = length(y)
+#   Knm = kernel_func(X,X_ind,kernel_param)
+#   Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
+#   Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
+#   L_Kmm = chol(Kmm)
+#   L_Kmm_inv = backsolve(L_Kmm,diag(ncol(Kmm)))
+#   Kmm_inv = tcrossprod(L_Kmm_inv)
+#   A = Knm%*%Kmm_inv
+#   L_V = t(chol(V))
+#   Ab = drop(A%*%post_mean)
+#   v = Knn_diag - rowSums((Knm%*%L_Kmm_inv)^2)  + rowSums((A%*%L_V)^2)
+#   return(list(mean=Ab,var=v,rate=exp(mu)*exp(Ab+v/2),rate_v = (exp(v)-1)*exp(2*Ab+v)))
+# }
+
 
 # RBFkernel = function(X1,X2,kernel_param,eps=NULL,diagonal=F){
 #   coeff = exp(kernel_param[1])

@@ -11,10 +11,16 @@ X = seq(-5,5,length.out = n)
 # f = f - min(f)
 # f = f*20
 f = c(rep(0.1,n/5),rep(1,n/5),rep(0.1,n/5),rep(2,n/5),rep(0.1,n/5))
+s = runif(n,0,5)
 sigma2=0.0
-y = rpois(length(f),exp(log(f)+rnorm(n,0,sqrt(sigma2))))
-plot(X,y,pch=20,col='grey70')
-lines(X,f)
+y = rpois(length(f),s*exp(log(f)+rnorm(n,0,sqrt(sigma2))))
+plot(y,pch=20,col='grey70')
+lines(f)
+
+plot(y/s,pch=20,col='grey70')
+lines(f)
+
+res = ebpm_pois_sgp(y,s)
 
 res = pois_sgp(y,fix_X_ind = T)
 plot(res$elbo_tace)
