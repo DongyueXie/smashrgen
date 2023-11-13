@@ -4,14 +4,14 @@
 \alias{BMSM}
 \title{Bayesian Multi-scale Model for Smoothing Poisson sequence}
 \usage{
-BMSM(x, sc = 1, bmsm_control = list())
+BMSM(x, sc = 1, control = list())
 }
 \arguments{
 \item{x:}{a vector of observed counts}
 
 \item{sc:}{a scale factor/offset, must be a scalar}
 
-\item{bmsm_control:}{control parameters of BMSM, see bmsm_control_default()}
+\item{control:}{control parameters of BMSM, see bmsm_control_default()}
 }
 \value{
 estimated poisson sequence

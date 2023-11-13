@@ -1,23 +1,23 @@
 #'@title Bayesian Multi-scale Model for Smoothing Poisson sequence
 #'@param x: a vector of observed counts
 #'@param sc: a scale factor/offset, must be a scalar
-#'@param bmsm_control: control parameters of BMSM, see bmsm_control_default()
+#'@param control: control parameters of BMSM, see bmsm_control_default()
 #'@return estimated poisson sequence
 #'@importFrom smashr reflect
 #'@export
 
 
-BMSM = function(x,sc=1,bmsm_control=list()){
+BMSM = function(x,sc=1,control=list()){
   if(min(x) < 0){stop ("negative values in x not permitted")}
 
-  if (!is.list(bmsm_control))
-    stop("Argument \"bmsm_control\" should be a list")
+  if (!is.list(control))
+    stop("Argument \"control\" should be a list")
 
   control0 = bmsm_control_default()
-  if (any(!is.element(names(bmsm_control),names(control0))))
-    stop("Argument \"bmsm_control\" contains unknown parameter names")
+  if (any(!is.element(names(control),names(control0))))
+    stop("Argument \"control\" contains unknown parameter names")
 
-  control1 = modifyList(control0,bmsm_control,keep.null = TRUE)
+  control1 = modifyList(control0,control,keep.null = TRUE)
 
   reflect = control1$reflect
   shape = control1$shape
