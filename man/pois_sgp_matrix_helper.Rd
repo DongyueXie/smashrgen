@@ -7,7 +7,7 @@
 pois_sgp_matrix_helper(
   X,
   y,
-  s,
+  sc,
   X_ind,
   kernel_param,
   kernel_func,

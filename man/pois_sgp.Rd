@@ -14,7 +14,7 @@ pois_sgp(
   kernel_func = Maternkernel,
   kernel_param = NULL,
   mu = NULL,
-  s = NULL,
+  sc = NULL,
   opt_method = "L-BFGS-B",
   fix_X_ind = F,
   fix_kernel_param = F,
@@ -34,6 +34,16 @@ pois_sgp(
 }
 \arguments{
 \item{y}{count vector}
+
+\item{X, X_ind}{grids, and inducing points}
+
+\item{m}{number of inducing points}
+
+\item{post_mean, V}{posterior mean and var of f at inducing point}
+
+\item{kernel_func, kernel_param}{functions and their parameters}
+
+\item{sc}{scaling scalar or vectors}
 }
 \description{
 Sparse Gaussian process for Poisson data via variational inference

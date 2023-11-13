@@ -22,7 +22,7 @@ lines(f)
 
 res = ebpm_pois_sgp(y,s)
 
-res = pois_sgp(y,fix_X_ind = T)
+res = pois_sgp(y,sc=s,fix_X_ind = T)
 plot(res$elbo_tace)
 plot(y,pch=20,col='grey70')
 lines(f)

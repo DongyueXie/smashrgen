@@ -2,7 +2,7 @@
 % Please edit documentation in R/pois_sgp.R
 \name{ebpm_pois_sgp}
 \alias{ebpm_pois_sgp}
-\title{Poisson SGP}
+\title{Poisson Sparse Gaussian Process}
 \usage{
 ebpm_pois_sgp(
   x,
@@ -22,10 +22,18 @@ ebpm_pois_sgp(
 
 \item{fix_g}{a boolean or a vector of boolean of length 3. If TRUE, set the corresponding prior at g_init.}
 
-\item{q_init}{a list of init values of posterior: mean, var}
+\item{q_init}{a list of init values of posterior: mean_log_ind, v_log_ind. These are the posterior mean and var of the f at the inducing points.}
 
 \item{control}{a list of other parameters passed to the `pois_sgp` function.}
 }
+\value{
+a list of posterior, log_likelihood, fitted_g
+}
 \description{
-Poisson SGP
+Poisson Sparse Gaussian Process
+}
+\details{
+The model is
+\deqn{x_{i}\sim \text{Poisson}(s_i\exp(\mu+f_{i})),}
+\deqn{f\sim N(0,\Sigma(\theta)).}
 }
