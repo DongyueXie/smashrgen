@@ -120,7 +120,9 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
   if(is.null(post_mean)|is.null(V)|is.null(kernel_param)){
     #temp = sgp(log(1+y/s),X,X_ind,mu=mean(log(1+y/s)),fix_x_ind = T,fix_mu = T,kernel_func = kernel_func)
     #ly = smash.poiss(y/s,log=T)
-    temp = sgp(log(1+y/sc),X,X_ind,mu=NULL,fix_x_ind = T,kernel_func = kernel_func)
+    ly = log(1+y/sc)
+    temp = sgp(ly,X,X_ind,mu=NULL,fix_x_ind = T,kernel_func = kernel_func,
+               sigma2 = sd_est_diff2(ly)^2,fix_sigma2 = TRUE)
     mu = temp$fitted_g$mu
     if(is.null(post_mean)){
       post_mean = temp$posterior$mean_ind
@@ -136,31 +138,39 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
     mu = log(sum(y)/sum(sc))
   }
   if(l_b[1]==-Inf){
-    l_b = c(rep(X_range[1],m),rep(-6,n_kernel_param))
+    l_b = c(rep(X_range[1],m),rep(-5,n_kernel_param))
   }
   if(r_b[1]==Inf){
-    r_b=c(rep(X_range[2],m),rep(6,n_kernel_param))
+    r_b=c(rep(X_range[2],m),rep(5,n_kernel_param))
   }
 
-  elbo_tace = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter)
+  if(fix_X_ind){
+    d_mat_nm = Rfast::Outer(X_ind,X,"-")
+    d_mat_mm = Rfast::Outer(X_ind,X_ind,"-")
+  }else{
+    d_mat_nm=NULL
+    d_mat_mm=NULL
+  }
+
+  elbo_tace = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   #print(paste("elbo init:",round(elbo_tace,3)))
   for(iter in 1:maxiter){
     # update post mean
-    post_mean = pois_sgp_update_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=maxiter_mean,tol=tol_mean,Jitter=Jitter)
+    post_mean = pois_sgp_update_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=maxiter_mean,tol=tol_mean,Jitter,d_mat_nm,d_mat_mm)
     #print(paste("elbo after post_mean update:",round(pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter),3)))
     # update post var
-    V = pois_sgp_update_V(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=maxiter_V,tol=tol_V,Jitter=Jitter)
+    V = pois_sgp_update_V(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=maxiter_V,tol=tol_V,Jitter,d_mat_nm,d_mat_mm)
     #print(paste("elbo after V update:",round(pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter),3)))
     # update kernel and x_ind
-    prior = pois_sgp_update_prior(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_kernel_param,fix_X_ind,m,n_kernel_param,opt_method,l_b,r_b,Jitter=Jitter)
+    prior = pois_sgp_update_prior(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_kernel_param,fix_X_ind,m,n_kernel_param,opt_method,l_b,r_b,Jitter,d_mat_nm,d_mat_mm)
     X_ind = prior$X_ind
     kernel_param = prior$kernel_param
     #print(paste("elbo after prior update:",round(pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter),3)))
     # update mu
-    mu = pois_sgp_update_mu(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_mu,Jitter)
+    mu = pois_sgp_update_mu(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_mu,Jitter,d_mat_nm,d_mat_mm)
     #print(paste("elbo after mu update:",round(pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter),3)))
 
-    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter=Jitter)
+    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
     elbo_tace[iter+1] = elbo
     if(verbose){
       if(iter%%printevery==0){
@@ -173,7 +183,7 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
 
 
   }
-  post = pois_sgp_get_posterior(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  post = pois_sgp_get_posterior(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   return(list(elbo_tace=elbo_tace,elbo=elbo,
               fitted_g = list(X_ind=X_ind,kernel_param=kernel_param,mu=mu,kernel_func=kernel_func),
               posterior=list(mean=post$mean,sd=sqrt(post$v),rate=post$rate,rate_sd = sqrt(post$rate_v),mean_ind=post_mean,V_ind=V),
@@ -181,17 +191,20 @@ pois_sgp = function(y,X=NULL,X_ind=NULL,m=30,
 }
 
 #'@title Function for optimize kernel parameters in the prior
-pois_sgp_update_prior_kernel = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
+pois_sgp_update_prior_kernel = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
   n_kernel_param = length(kernel_param)
-  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   res = try(optim(kernel_param,pois_sgp_obj_for_optim_kernel_only,
                   X=X,y=y,sc=sc,X_ind=X_ind,
                   kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,
-                  lower = rep(-6,n_kernel_param),upper = rep(6,n_kernel_param),Jitter=Jitter,
-                  method = opt_method),silent = TRUE)
+                  lower = rep(-5,n_kernel_param),upper = rep(5,n_kernel_param),Jitter=Jitter,
+                  d_mat_nm=d_mat_nm,d_mat_mm=d_mat_mm,
+                  method = "L-BFGS-B"),silent = TRUE)
+  #browser()
   if(class(res)!='try-error'){
     if((-res$value)>elbo_old){
       kernel_param = res$par
+      refit = FALSE
     }else{
       refit = TRUE
     }
@@ -199,7 +212,7 @@ pois_sgp_update_prior_kernel = function(X,y,sc,X_ind,kernel_param,kernel_func,po
     refit=TRUE
   }
   if(refit){
-    res = try(pois_sgp_optimize_kernel_newton(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter))
+    res = try(pois_sgp_optimize_kernel_newton(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm))
     if(class(res)!='try-error'){
       kernel_param = res
     }
@@ -209,19 +222,20 @@ pois_sgp_update_prior_kernel = function(X,y,sc,X_ind,kernel_param,kernel_func,po
 
 #'@title Master function for optimizing priors (X_ind, kernel_param)
 pois_sgp_update_prior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,
-                                 fix_kernel_param,fix_X_ind,m,n_kernel_param,opt_method,l_b,r_b,Jitter){
+                                 fix_kernel_param,fix_X_ind,m,n_kernel_param,opt_method,l_b,r_b,Jitter,d_mat_nm,d_mat_mm){
 
   if(!(fix_kernel_param&fix_X_ind)){
     # if only optimize kernel_param
     if(fix_X_ind&(!fix_kernel_param)){
-      kernel_param = pois_sgp_update_prior_kernel(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+      kernel_param = pois_sgp_update_prior_kernel(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
     }else{
-      elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+      elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
       # optimize both X_ind and kernel_param
       res = try(optim(c(X_ind,kernel_param),pois_sgp_obj_for_optim,
                   m=m,n_kernel_param=n_kernel_param,X=X,y=y,sc=sc,X_ind=X_ind,kernel_param=kernel_param,
                   kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,fix_X_ind=fix_X_ind,fix_kernel_param=fix_kernel_param,
                   lower = l_b,upper = r_b,Jitter=Jitter,
+                  d_mat_nm=d_mat_nm,d_mat_mm=d_mat_mm,
                   method = opt_method),silent = TRUE)
       if(class(res)!="try-error"){
         if((-res$value)>elbo_old){
@@ -240,7 +254,7 @@ pois_sgp_update_prior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean
       if(refit_kernel_only){
         # if optim not working well when optimizing both X_ind, and kernel param, only optimize kernel_param
         if(!fix_kernel_param&!fix_X_ind){
-          kernel_param = pois_sgp_update_prior_kernel(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+          kernel_param = pois_sgp_update_prior_kernel(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
         }
       }
     }
@@ -251,9 +265,9 @@ pois_sgp_update_prior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean
 }
 
 #'@title Function for optimize mu
-pois_sgp_update_mu = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_mu,Jitter){
+pois_sgp_update_mu = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_mu,Jitter,d_mat_nm,d_mat_mm){
   if(!fix_mu){
-    delta = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)$delta
+    delta = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)$delta
     mu = log(sum(y)/sum(delta))
   }
   #print(pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu))
@@ -261,15 +275,15 @@ pois_sgp_update_mu = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,
 }
 
 #'@title Function for updating posterior var
-pois_sgp_update_V = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter){
+pois_sgp_update_V = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter,d_mat_nm,d_mat_mm){
   V_old = V
   n = length(y)
-  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   for(i in 1:maxiter){
-    V = solve(-grad_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V_old,mu,return_grad=F,return_hess=T,Jitter))
+    V = solve(-grad_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V_old,mu,return_grad=F,return_hess=T,Jitter,d_mat_nm,d_mat_mm))
     #print(pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter))
     #print(norm(V-V_old,type ='2'))
-    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
     # if(norm(V-V_old,type ='2')<tol){
     #   break
     # }
@@ -291,18 +305,18 @@ pois_sgp_update_V = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,m
 }
 
 #'@title Function for optimizing posterior mean
-pois_sgp_update_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter){
+pois_sgp_update_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,maxiter=100,tol=1e-5,Jitter,d_mat_nm,d_mat_mm){
   post_mean_old = post_mean
-  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   n = length(y)
   for(iter in 1:maxiter){
-    grad_hess = grad_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean_old,V,mu,return_grad=T,return_hess=T,Jitter)
+    grad_hess = grad_post_mean(X,y,sc,X_ind,kernel_param,kernel_func,post_mean_old,V,mu,return_grad=T,return_hess=T,Jitter,d_mat_nm,d_mat_mm)
     grad = -grad_hess$grad
     hess = -grad_hess$hess
     # direction = c(pcgsolve(hess,post_mean))
-    direction = c(solve(hess)%*%grad)
+    direction = c(solve(hess,grad))
     post_mean = post_mean_old - direction
-    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
     #print(pois_sgp_elbo(X,y,s,X_ind,kernel_param,kernel_func,post_mean,V,mu))
     # if(norm(post_mean-post_mean_old,type='2')<tol){
     #   break
@@ -324,9 +338,20 @@ pois_sgp_update_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_
   }
 }
 
+# grad_kernel_param = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
+#   m=length(X_ind)
+#   g_Knm = kernel_func(X,X_ind,kernel_param,d_mat=d_mat_nm,calc_grad_scales=T)$g_scales
+#   g_Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter,d_mat=d_mat_mm,calc_grad_scales=T)$g_scales
+#   temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)
+#   grad_log_c = exp(mu)*sum(temp$delta*(temp$Knn_diag/2-Rfast::rowsums(Rfast::Tcrossprod(temp$Knm,temp$L_Kmm_inv)^2)/2))+m/2- sum((temp$L_Kmm_inv%*%post_mean)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2
+#   Smmm = temp$Kmm_inv%*%g_Kmm%*%temp$Kmm_inv
+#   grad_log_theta = exp(mu)*sum(temp$delta*(-Rfast::rowsums(temp$A*g_Knm)/2))+sum(temp$Kmm_inv*g_Kmm)+ sum(post_mean*c(Smmm%*%post_mean))/2 - sum(Smmm*V)/2
+#   return(c(grad_log_c,grad_log_theta))
+# }
+
 #'@title Gradient and hessian of eblo w.r.t post_mean
-grad_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,return_grad=T,return_hess=T,Jitter){
-  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)
+grad_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,return_grad=T,return_hess=T,Jitter,d_mat_nm,d_mat_mm){
+  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)
   if(return_grad&return_hess){
     grad = crossprod(temp$A,y-exp(mu)*temp$delta)-temp$Kmm_inv%*%post_mean
     hess = -exp(mu)*crossprod(temp$A*sqrt(temp$delta))-temp$Kmm_inv
@@ -344,15 +369,15 @@ grad_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,r
 }
 
 #'@title calc elbo
-pois_sgp_elbo = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
+pois_sgp_elbo = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
   m = length(X_ind)
-  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T)
+  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)
   obj = sum(y*temp$Ab)+mu*sum(y)-exp(mu)*sum(temp$delta)+sum(y*log(sc))-sum(lfactorial(y))-sum(log(diag(temp$L_Kmm)))/2 - sum((temp$L_Kmm_inv%*%post_mean)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2+sum(log(diag(temp$L_V)))/2-m/2*log(2*pi)+m/2
   return(drop(obj))
 }
 
 #'@title objective function for optimizing elbo w.r.t X-ind and kernel_param for `optim`
-pois_sgp_obj_for_optim = function(params,m,n_kernel_param,X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_X_ind,fix_kernel_param,Jitter){
+pois_sgp_obj_for_optim = function(params,m,n_kernel_param,X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,fix_X_ind,fix_kernel_param,Jitter,d_mat_nm,d_mat_mm){
   #n = length(y)
   if(!fix_X_ind){
     X_ind = params[1:m]
@@ -360,39 +385,39 @@ pois_sgp_obj_for_optim = function(params,m,n_kernel_param,X,y,sc,X_ind,kernel_pa
   if(!fix_kernel_param){
     kernel_param = params[(m+1):(m+n_kernel_param)]
   }
-  obj=-pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  obj=-pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   return(obj)
 }
 
 #'@title objective function for optimizing elbo w.r.t kernel_param for `optim`
-pois_sgp_obj_for_optim_kernel_only = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter){
-  obj = -pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+pois_sgp_obj_for_optim_kernel_only = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
+  obj = -pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   #print(kernel_param)
   #print(obj)
   return(obj)
 }
 
 #'@title Newton's method for optimizing elbo w.r.t kernel_param, using numerical grad and hess
-pois_sgp_optimize_kernel_newton = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,tol=1e-5,maxiter=100){
+pois_sgp_optimize_kernel_newton = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm,tol=1e-5,maxiter=100){
   kernel_param_old = kernel_param
-  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+  elbo_old = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
   elbo_init = elbo_old
   kernel_param_init = kernel_param_old
   n = length(y)
   for(iter in 1:maxiter){
     hess_mat = numDeriv::hessian(pois_sgp_obj_for_optim_kernel_only,kernel_param_old,X=X,y=y,sc=sc,X_ind=X_ind,
-                             kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,Jitter=Jitter)
+                             kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,Jitter=Jitter,d_mat_nm=d_mat_nm,d_mat_mm=d_mat_mm)
     grad_vec = numDeriv::grad(pois_sgp_obj_for_optim_kernel_only,kernel_param_old,X=X,y=y,sc=sc,X_ind=X_ind,
-                             kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,Jitter=Jitter)
+                             kernel_func=kernel_func,post_mean=post_mean,V=V,mu=mu,Jitter=Jitter,d_mat_nm=d_mat_nm,d_mat_mm=d_mat_mm)
     if(length(c(grad_vec))==2){
       direction = c(hess_mat[2,2]*grad_vec[1]-hess_mat[1,2]*grad_vec[2], hess_mat[1,1]*grad_vec[2]-hess_mat[2,1]*grad_vec[1])/(prod(diag(hess_mat))-hess_mat[1,2]*hess_mat[2,1])
     }else{
-      direction = c(solve(hess_mat)%*%grad_vec)
+      direction = c(solve(hess_mat,grad_vec))
     }
 
     # print(direction)
     kernel_param = kernel_param_old - direction
-    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter)
+    elbo = pois_sgp_elbo(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm)
     # print(elbo)
     if(abs(elbo-elbo_old)/n<tol){
       break
@@ -409,25 +434,26 @@ pois_sgp_optimize_kernel_newton = function(kernel_param,X,y,sc,X_ind,kernel_func
 }
 
 #'@title Obtain full posterior distribution
-pois_sgp_get_posterior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter){
-  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=F)
-  v = temp$Knn_diag - rowSums((temp$Knm%*%t(temp$L_Kmm_inv))^2)  + rowSums((temp$A%*%temp$L_V)^2)
+pois_sgp_get_posterior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
+  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=F,d_mat_nm,d_mat_mm)
+  v = temp$Knn_diag - Rfast::rowsums(Rfast::Tcrossprod(temp$Knm,temp$L_Kmm_inv)^2)  + Rfast::rowsums(Rfast::mat.mult(temp$A,temp$L_V)^2)
+  #v = temp$Knn_diag - rowSums((temp$Knm%*%t(temp$L_Kmm_inv))^2)  + rowSums((temp$A%*%temp$L_V)^2)
   return(list(mean=temp$Ab+mu,var=v,rate=exp(mu+temp$Ab+v/2),rate_v = (exp(v)-1)*exp(2*(temp$Ab+mu)+v)))
 }
 
 #'@title Helper function for matrix calculations
-pois_sgp_matrix_helper = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T){
-  Knm = kernel_func(X,X_ind,kernel_param)
-  Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter)
+pois_sgp_matrix_helper = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm){
+  Knm = kernel_func(X,X_ind,kernel_param,d_mat=d_mat_nm)
+  Kmm = kernel_func(X_ind,X_ind,kernel_param,eps=Jitter,d_mat=d_mat_mm)
   Knn_diag = kernel_func(X,X,kernel_param,diagonal=T)
-  L_Kmm = t(chol(Kmm))
+  L_Kmm = t(Rfast::cholesky(Kmm))
   L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
   Kmm_inv = crossprod(L_Kmm_inv)
-  A = Knm%*%Kmm_inv
-  L_V = t(chol(V))
+  A = Rfast::mat.mult(Knm,Kmm_inv)
+  L_V = t(Rfast::cholesky(V))
   Ab = drop(A%*%post_mean)
   if(get_delta){
-    delta=sc*exp(Ab+rowSums((A%*%L_V)^2)/2+Knn_diag/2-rowSums((Knm%*%t(L_Kmm_inv))^2)/2)
+    delta=sc*exp(Ab+Rfast::rowsums(Rfast::mat.mult(A,L_V)^2)/2+Knn_diag/2-Rfast::rowsums(Rfast::Tcrossprod(Knm,L_Kmm_inv)^2)/2)
   }else{
     delta=NULL
   }

@@ -16,7 +16,9 @@ pois_sgp_update_post_mean(
   mu,
   maxiter = 100,
   tol = 1e-05,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

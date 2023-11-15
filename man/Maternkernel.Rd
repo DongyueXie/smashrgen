@@ -4,7 +4,16 @@
 \alias{Maternkernel}
 \title{Matern Kernel}
 \usage{
-Maternkernel(X1, X2, kernel_param, eps = NULL, diagonal = F, nu = 3/2)
+Maternkernel(
+  X1,
+  X2,
+  kernel_param,
+  eps = NULL,
+  diagonal = F,
+  nu = 3/2,
+  d_mat = NULL,
+  calc_grad_scales = FALSE
+)
 }
 \description{
 Matern Kernel

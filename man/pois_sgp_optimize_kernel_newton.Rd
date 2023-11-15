@@ -15,6 +15,8 @@ pois_sgp_optimize_kernel_newton(
   V,
   mu,
   Jitter,
+  d_mat_nm,
+  d_mat_mm,
   tol = 1e-05,
   maxiter = 100
 )

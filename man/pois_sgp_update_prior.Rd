@@ -21,7 +21,9 @@ pois_sgp_update_prior(
   opt_method,
   l_b,
   r_b,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

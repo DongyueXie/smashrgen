@@ -15,7 +15,9 @@ pois_sgp_update_mu(
   V,
   mu,
   fix_mu,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

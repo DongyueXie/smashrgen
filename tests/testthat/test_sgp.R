@@ -1,6 +1,6 @@
 library(mvnfast)
 set.seed(2023)
-n = 100
+n = 1000
 m = 10
 X = seq(-5,5,length.out = n)
 sigma2 = 0.5
@@ -30,7 +30,7 @@ legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70
 
 # Try optimization
 
-res = sgp(y,kernel_func = RBFkernel)
+res = sgp(y,fix_x_ind = T,m=30)
 plot(y,pch=20,col='grey70')
 lines(c(f))
 lines(res$posterior$mean+res$fitted_g$mu,col=4,lwd=2)

@@ -19,7 +19,9 @@ pois_sgp_obj_for_optim(
   mu,
   fix_X_ind,
   fix_kernel_param,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

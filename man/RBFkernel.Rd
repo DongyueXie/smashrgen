@@ -4,7 +4,10 @@
 \alias{RBFkernel}
 \title{RBF Kernel}
 \usage{
-RBFkernel(X1, X2, kernel_param, eps = NULL, diagonal = F)
+RBFkernel(X1, X2, kernel_param, eps = NULL, diagonal = F, d_mat = NULL)
+}
+\arguments{
+\item{d_mat}{output of outer(X1,X2,"-")}
 }
 \description{
 RBF Kernel

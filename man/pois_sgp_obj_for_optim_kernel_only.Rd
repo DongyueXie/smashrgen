@@ -14,7 +14,9 @@ pois_sgp_obj_for_optim_kernel_only(
   post_mean,
   V,
   mu,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

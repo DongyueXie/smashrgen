@@ -16,7 +16,9 @@ grad_post_mean(
   mu,
   return_grad = T,
   return_hess = T,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

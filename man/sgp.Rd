@@ -11,7 +11,7 @@ sgp(
   m = 10,
   kernel_func = Maternkernel,
   kernel_param = c(0, 0),
-  mu = 0,
+  mu = NULL,
   s2 = NULL,
   sigma2 = 1,
   opt_method = "L-BFGS-B",

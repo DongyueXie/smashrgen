@@ -14,7 +14,9 @@ pois_sgp_update_prior_kernel(
   post_mean,
   V,
   mu,
-  Jitter
+  Jitter,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

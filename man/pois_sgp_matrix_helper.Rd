@@ -15,7 +15,9 @@ pois_sgp_matrix_helper(
   V,
   mu,
   Jitter,
-  get_delta = T
+  get_delta = T,
+  d_mat_nm,
+  d_mat_mm
 )
 }
 \description{

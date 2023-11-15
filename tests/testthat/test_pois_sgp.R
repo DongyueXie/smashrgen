@@ -1,7 +1,7 @@
 library(mvnfast)
 set.seed(12)
 n = 1000
-m = 10
+# m = 10
 X = seq(-5,5,length.out = n)
 # X_ind = seq(-5,5,length.out = m)
 # kernel_param = c(0,0)
@@ -11,7 +11,8 @@ X = seq(-5,5,length.out = n)
 # f = f - min(f)
 # f = f*20
 f = c(rep(0.1,n/5),rep(1,n/5),rep(0.1,n/5),rep(2,n/5),rep(0.1,n/5))
-s = runif(n,0,5)
+# s = runif(n,0,5)
+s=1
 sigma2=0.0
 y = rpois(length(f),s*exp(log(f)+rnorm(n,0,sqrt(sigma2))))
 plot(y,pch=20,col='grey70')
