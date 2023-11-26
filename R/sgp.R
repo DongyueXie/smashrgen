@@ -348,7 +348,7 @@ sgp_obj = function(X_ind,kernel_param,log_sigma2,mu,s2,y,X,kernel_func,Jitter,d_
     Ab = temp$A%*%beta
   }
   F1=-n/2*log(2*pi*sigma2)-sum(log(s2))/2-(sum(y^2/s2)-2*sum(y/s2*Ab)-2*mu*sum(y/s2*tilde1)+sum(Ab^2/s2)+2*mu*sum(Ab/s2*tilde1)+mu^2*tilde1Dtilde1+sum(Rfast::mat.mult(temp$A/sqrt(s2),temp$L_V)^2)+sum(temp$Knn_diag/s2)-sum(Rfast::Tcrossprod(temp$Knm/sqrt(s2),temp$L_Kmm_inv)^2))/2/sigma2
-  F2 = -sum(log(diag(temp$L_Kmm)))/2 - sum((temp$L_Kmm_inv%*%beta)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2+sum(log(diag(temp$L_V)))/2 + m*0.5 + mu*sum(temp$Kmm_inv%*%beta) - mu^2*sum_Kmminv/2
+  F2 = -sum(log(diag(temp$L_Kmm))) - sum((temp$L_Kmm_inv%*%beta)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2+sum(log(diag(temp$L_V))) + m*0.5 + mu*sum(temp$Kmm_inv%*%beta) - mu^2*sum_Kmminv/2
   elbo=drop(F1+F2)
   return(-elbo)
 }
@@ -393,17 +393,17 @@ Maternkernel = function(X1,X2,kernel_param,eps=NULL,diagonal=F,nu=3/2,d_mat=NULL
     }
 
     if(nu==1/2){
-      K = coeff*exp(-abs_dist/scales)
+      R = exp(-abs_dist/scales)
       if(calc_grad_scales){
         g_scales = coeff*abs_dist*exp(-abs_dist/scales)/scales
       }
     }else if(nu==3/2){
-      K = coeff*(1+sqrt(3)*abs_dist/scales)*exp(-sqrt(3)*abs_dist/scales)
+      R = (1+sqrt(3)*abs_dist/scales)*exp(-sqrt(3)*abs_dist/scales)
       if(calc_grad_scales){
         g_scales = coeff*(3*abs_dist^2/scales^2*exp(-sqrt(3)*abs_dist/scales))
       }
     }else if(nu==5/2){
-      K = coeff*(1+sqrt(5)*abs_dist/scales+5*abs_dist^2/3/scales^2)*exp(-sqrt(5)*abs_dist/scales)
+      R = (1+sqrt(5)*abs_dist/scales+5*abs_dist^2/3/scales^2)*exp(-sqrt(5)*abs_dist/scales)
       if(calc_grad_scales){
         g_scales = coeff*5*abs_dist^2*(sqrt(5)*abs_dist+scales)*exp(-sqrt(5)*abs_dist/scales)/(3*scales^3)
       }
@@ -411,12 +411,12 @@ Maternkernel = function(X1,X2,kernel_param,eps=NULL,diagonal=F,nu=3/2,d_mat=NULL
       stop('nu can only be 1/3, 3/2, 5/2')
     }
     if(!is.null(eps)){
-      K = K+diag(eps,length(X1))
+      R = R+diag(eps,length(X1))
     }
     if(calc_grad_scales){
-      return(list(K=K,g_scales=g_scales))
+      return(list(K=coeff*R,g_scales=g_scales))
     }else{
-      return(K)
+      return(coeff*R)
     }
   }
 }

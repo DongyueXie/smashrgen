@@ -383,6 +383,14 @@ grad_kernel_param = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,m
   return(c(grad_log_c,-grad_log_theta1+grad_log_theta2))
 }
 
+grad_kernel_param = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
+  m=length(X_ind)
+  temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)
+  grad_log_c1 = -sum(temp$delta*(temp$Knn_diag/2-rowsums(temp$A*temp$Knm)/2))
+  grad_log_c2 = - m/2 + (sum((temp$L_Kmm_inv%*%post_mean)^2)+sum((temp$Kmm_inv*V))-2*mu*sum(temp$Kmm_inv%*%post_mean)+mu^2*sum(temp$Kmm_inv))/2
+  return(grad_log_c1+grad_log_c2)
+}
+
 #'@title Gradient and hessian of eblo w.r.t post_mean
 grad_post_mean = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,return_grad=T,return_hess=T,Jitter,d_mat_nm,d_mat_mm){
   temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=T,d_mat_nm,d_mat_mm)
