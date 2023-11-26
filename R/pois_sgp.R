@@ -53,11 +53,11 @@ ebpm_pois_sgp = function(x,s=1,g_init=NULL,fix_g=FALSE,q_init=NULL,control=list(
                  mu=mu,
                  sc=s,
                  opt_method=controls$opt_method,
-                 fix_X_ind=fix_X_ind,fix_kernel_param=fix_kernel_param,fix_mu=fix_mu,
+                 fix_X_ind=T,fix_kernel_param=fix_kernel_param,fix_mu=fix_mu,
                  maxiter=controls$maxiter,tol=controls$tol,
                  maxiter_mean=controls$maxiter_mean,tol_mean=controls$tol_mean,
                  maxiter_V=controls$maxiter_V,tol_V=controls$tol_V,
-                 l_b=controls$l_b,r_b=controls$r_b,
+                 #l_b=controls$l_b,r_b=controls$r_b,
                  Jitter=controls$Jitter,
                  verbose=controls$verbose,printevery=controls$printevery)
   return(list(posterior=list(mean=res$posterior$rate,

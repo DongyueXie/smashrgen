@@ -1,7 +1,7 @@
 #library(mvnfast)
 #library(smashrgen)
 set.seed(12)
-n = 10000
+n = 1000
 # m = 10
 X = seq(-5,5,length.out = n)
 # X_ind = seq(-5,5,length.out = m)
