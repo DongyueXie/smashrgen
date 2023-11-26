@@ -8,7 +8,7 @@ X_ind = seq(-5,5,length.out = m)
 kernel_param = c(0,0)
 #K = RBFkernel(X,X,kernel_param,eps=1e-5)
 K = Maternkernel(X,X,kernel_param,eps=1e-5,nu=3/2)
-mu = 0
+mu = -10
 f = rmvn(1,rep(mu,n),K)
 s2 = runif(n,0.5,2)
 y = drop(f + rnorm(n,0,sqrt(sigma2*s2)))
@@ -33,15 +33,15 @@ legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70
 res = sgp(y,fix_x_ind = T,m=30)
 plot(y,pch=20,col='grey70')
 lines(c(f))
-lines(res$posterior$mean+res$fitted_g$mu,col=4,lwd=2)
-lines(res$posterior$mean+res$fitted_g$mu+2*res$posterior$sd,col=2,lty=2)
-lines(res$posterior$mean+res$fitted_g$mu-2*res$posterior$sd,col=2,lty=2)
+lines(res$posterior$mean,col=4,lwd=2)
+lines(res$posterior$mean+2*res$posterior$sd,col=2,lty=2)
+lines(res$posterior$mean-2*res$posterior$sd,col=2,lty=2)
 legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70',1,4))
 
 res = sgp(y,fix_x_ind = T,fix_sigma2 = T,sigma2=sigma2,s2=s2,m=100)
 plot(X,y,pch=20,col='grey70')
 lines(X,f)
-lines(X,res$posterior$mean+res$fitted_g$mu,col=4,lwd=2)
+lines(X,res$posterior$mean,col=4,lwd=2)
 legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70',1,4))
 
 res = ebnm_sgp(y,sqrt(sigma2*s2))

@@ -6,17 +6,17 @@
 \usage{
 pois_sgp(
   y,
+  sc = NULL,
   X = NULL,
   X_ind = NULL,
   m = 30,
-  post_mean = NULL,
-  V = NULL,
   kernel_func = Maternkernel,
   kernel_param = NULL,
   mu = NULL,
-  sc = NULL,
+  post_mean = NULL,
+  V = NULL,
   opt_method = "L-BFGS-B",
-  fix_X_ind = F,
+  fix_X_ind = T,
   fix_kernel_param = F,
   fix_mu = F,
   maxiter = 100,
@@ -25,8 +25,6 @@ pois_sgp(
   tol_mean = 1e-05,
   maxiter_V = 100,
   tol_V = 1e-05,
-  l_b = -Inf,
-  r_b = Inf,
   Jitter = 1e-05,
   verbose = T,
   printevery = 1
@@ -35,15 +33,15 @@ pois_sgp(
 \arguments{
 \item{y}{count vector}
 
+\item{sc}{scaling scalar or vectors}
+
 \item{X, X_ind}{grids, and inducing points}
 
 \item{m}{number of inducing points}
 
-\item{post_mean, V}{posterior mean and var of f at inducing point}
-
 \item{kernel_func, kernel_param}{functions and their parameters}
 
-\item{sc}{scaling scalar or vectors}
+\item{post_mean, V}{posterior mean and var of f at inducing point}
 }
 \description{
 Sparse Gaussian process for Poisson data via variational inference

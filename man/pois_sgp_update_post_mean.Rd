@@ -18,7 +18,8 @@ pois_sgp_update_post_mean(
   tol = 1e-05,
   Jitter,
   d_mat_nm,
-  d_mat_mm
+  d_mat_mm,
+  verbose
 )
 }
 \description{

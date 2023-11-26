@@ -13,7 +13,7 @@ sgp(
   kernel_param = c(0, 0),
   mu = NULL,
   s2 = NULL,
-  sigma2 = 1,
+  sigma2 = NULL,
   opt_method = "L-BFGS-B",
   fix_x_ind = F,
   fix_kernel_param = F,
@@ -22,7 +22,8 @@ sgp(
   l_b = -Inf,
   r_b = Inf,
   Jitter = 1e-05,
-  n_restart = 5
+  n_restart = 5,
+  verbose = FALSE
 )
 }
 \arguments{

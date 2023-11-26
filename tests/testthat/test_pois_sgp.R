@@ -1,17 +1,19 @@
-library(mvnfast)
+#library(mvnfast)
+#library(smashrgen)
 set.seed(12)
-n = 1000
+n = 10000
 # m = 10
 X = seq(-5,5,length.out = n)
 # X_ind = seq(-5,5,length.out = m)
-# kernel_param = c(0,0)
-# K = RBFkernel(X,X,kernel_param,eps=1e-5)
+# kernel_param = c(2.473718, -0.745116)
+# K = Maternkernel(X,X,kernel_param,eps=1e-5)
 # mu = 0
 # f = drop(rmvn(1,rep(mu,n),K))
 # f = f - min(f)
 # f = f*20
-f = c(rep(0.1,n/5),rep(1,n/5),rep(0.1,n/5),rep(2,n/5),rep(0.1,n/5))
-# s = runif(n,0,5)
+f = c(rep(0.1,n/5),rep(20,n/5),rep(0.1,n/5),rep(100,n/5),rep(0.1,n/5))
+f = f
+#s = runif(n,0,5)
 s=1
 sigma2=0.0
 y = rpois(length(f),s*exp(log(f)+rnorm(n,0,sqrt(sigma2))))
@@ -23,16 +25,39 @@ lines(f)
 
 res = ebpm_pois_sgp(y,s)
 
-res = pois_sgp(y,sc=s,fix_X_ind = T)
-plot(res$elbo_tace)
+res = pois_sgp(y,sc=s,verbose = T,m=50)
+# plot(res$elbo_tace)
 plot(y,pch=20,col='grey70')
 lines(f)
 lines(res$posterior$rate,col=4,lwd=2)
 legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70',1,4))
 lines(res$posterior$rate+2*res$posterior$rate_sd,col=2,lty=2)
 lines(res$posterior$rate-2*res$posterior$rate_sd,col=2,lty=2)
+res$fitted_g
+
+#11/23/2023
+
+ly = log(1+y)
+plot(ly,pch=20,col='grey70')
+fit = sgp(ly,fix_x_ind = T,m=50,verbose = T)
+lines(fit$posterior$mean,col=2,lwd=2)
+fit$fitted_g$mu
+fit$fitted_g$X_ind
+fit$fitted_g$kernel_param
+fit$fitted_g$sigma2
 
 
+
+gp = gp_init(cf_sexp(),lik_poisson(),method = method_fitc())
+gp <- gp_optim(gp, X, y,restarts = 10)
+pred = gp_pred(gp,X,transform = T)
+plot(y,pch=20,col='grey70')
+lines(f)
+lines(pred$mean,col=4,lwd=2)
+lines(res$posterior$rate,col=2,lwd=2)
+
+fit_sgp = sgp(y,m=100,fix_x_ind = T,opt_method = "Nelder-Mead")
+lines(fit_sgp$posterior$mean+fit_sgp$fitted_g$mu,col=2)
 
 s = rep(1,n)
 kernel_func = Maternkernel
