@@ -15,7 +15,7 @@ sgp(
   s2 = NULL,
   sigma2 = NULL,
   opt_method = "L-BFGS-B",
-  fix_x_ind = F,
+  fix_X_ind = T,
   fix_kernel_param = F,
   fix_sigma2 = F,
   fix_mu = F,

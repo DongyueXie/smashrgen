@@ -23,11 +23,11 @@ ebnm_sgp = function(x,s,g_init=NULL,fix_g=FALSE,output){
     X_ind = g_init$X_ind
   }
   if(!is.null(g_init) & fix_g){
-    fix_x_ind=T
+    fix_X_ind=T
     fix_kernel_param=T
     fix_mu=T
   }else{
-    fix_x_ind=T
+    fix_X_ind=T
     fix_kernel_param=F
     fix_mu=F
   }
@@ -37,7 +37,7 @@ ebnm_sgp = function(x,s,g_init=NULL,fix_g=FALSE,output){
            mu=mu,
            s2=s^2,sigma2=1,
            opt_method='L-BFGS-B',
-           fix_x_ind=fix_x_ind,fix_kernel_param=fix_kernel_param,
+           fix_X_ind=fix_X_ind,fix_kernel_param=fix_kernel_param,
             fix_sigma2=T,fix_mu=fix_mu,l_b=-Inf,r_b=Inf)
   return(list(posterior=data.frame(mean=res$posterior$mean,second_moment=res$posterior$mean^2+res$posterior$sd^2),
               fitted_g=list(X_ind=res$fitted_g$X_ind,kernel_param=res$fitted_g$kernel_param,kernel_func=res$fitted_g$kernel_func,mu=res$fitted_g$mu),
@@ -58,6 +58,10 @@ ebnm_sgp = function(x,s,g_init=NULL,fix_g=FALSE,output){
 #'@param l_b,r_b lower and upper bound of prior parameters
 #'@param Jitter added to diagonal of the Kernel matrix for numerical stability
 #'@param n_restart number of re-start of different kernel params values
+#'@importFrom Rfast colsums
+#'@importFrom Rfast rowsums
+#'@importFrom Rfast Outer
+#'@importFrom Rfast cholesky
 #'@export
 sgp = function(y,
                X=NULL,X_ind=NULL,m=10,
@@ -66,7 +70,7 @@ sgp = function(y,
                mu=NULL,
                s2=NULL,sigma2=NULL,
                opt_method='L-BFGS-B',
-               fix_x_ind=F,fix_kernel_param=F,fix_sigma2=F,fix_mu=F,
+               fix_X_ind=T,fix_kernel_param=F,fix_sigma2=F,fix_mu=F,
                l_b=-Inf,r_b=Inf,
                Jitter=1e-5,
                n_restart=5,
@@ -85,9 +89,9 @@ sgp = function(y,
   n_kernel_param = length(kernel_param)
   if(is.null(s2)){s2 = 1}
 
-  if(fix_x_ind){
-    d_mat_nm = Rfast::Outer(X_ind,X,"-")
-    d_mat_mm = Rfast::Outer(X_ind,X_ind,"-")
+  if(fix_X_ind){
+    d_mat_nm = Outer(X_ind,X,"-")
+    d_mat_mm = Outer(X_ind,X_ind,"-")
   }else{
     d_mat_nm=NULL
     d_mat_mm=NULL
@@ -96,9 +100,9 @@ sgp = function(y,
     sigma2 = sd_est_diff2(y)^2
   }
 
-  if(!(fix_x_ind&fix_kernel_param&fix_sigma2&fix_mu)){
+  if(!(fix_X_ind&fix_kernel_param&fix_sigma2&fix_mu)){
     if(kernel_param[1]==0&!fix_kernel_param){
-      kernel_param = c(log(max(var(y)-sigma2,1)),0)
+      kernel_param = c(log(max(var(y)-sigma2,0)),0)
     }
     param_hat = try(sgp_workhorse(y,
                               X,X_ind,m,
@@ -107,7 +111,7 @@ sgp = function(y,
                               mu,
                               s2,sigma2,
                               opt_method,
-                              fix_x_ind,fix_kernel_param,fix_sigma2,fix_mu,
+                              fix_X_ind,fix_kernel_param,fix_sigma2,fix_mu,
                               l_b,r_b,
                               Jitter,
                               n_kernel_param,
@@ -122,7 +126,7 @@ sgp = function(y,
                                     mu,
                                     s2,sigma2,
                                     "Nelder-Mead",
-                                    fix_x_ind,fix_kernel_param,fix_sigma2,fix_mu,
+                                    fix_X_ind,fix_kernel_param,fix_sigma2,fix_mu,
                                     l_b,r_b,
                                     Jitter,
                                     n_kernel_param,
@@ -137,7 +141,7 @@ sgp = function(y,
         cat(paste("re-initializing",num_try))
         cat('\n')
       }
-      if(!fix_x_ind){
+      if(!fix_X_ind){
         X_ind=runif(m,min=X_range[1],max=X_range[2])
       }
       if(!fix_kernel_param){
@@ -150,7 +154,7 @@ sgp = function(y,
                                     mu,
                                     s2,sigma2,
                                     opt_method,
-                                    fix_x_ind,fix_kernel_param,fix_sigma2,fix_mu,
+                                    fix_X_ind,fix_kernel_param,fix_sigma2,fix_mu,
                                     l_b,r_b,
                                     Jitter,
                                     n_kernel_param,
@@ -168,7 +172,7 @@ sgp = function(y,
   }
   elbo = sgp_obj(X_ind,kernel_param,log(sigma2),mu,s2,y,X,kernel_func,Jitter,d_mat_nm,d_mat_mm)
   post = sgp_get_posterior(X_ind,kernel_param,log(sigma2),mu,s2,y,X,kernel_func,Jitter,d_mat_nm,d_mat_mm)
-  return(list(elbo=-elbo,
+  return(list(elbo=-elbo*n,
               posterior=list(mean=post$mean,sd=sqrt(post$v),mean_ind=post$mean_ind,V_ind = post$V_ind),
               fitted_g=list(mu=post$mu,X_ind=X_ind,kernel_param=kernel_param,sigma2=sigma2,kernel_func=kernel_func),
               run_time = difftime(Sys.time(),t0),
@@ -181,7 +185,7 @@ sgp_workhorse = function(y,
                          mu,
                          s2,sigma2,
                          opt_method,
-                         fix_x_ind,fix_kernel_param,fix_sigma2,fix_mu,
+                         fix_X_ind,fix_kernel_param,fix_sigma2,fix_mu,
                          l_b,r_b,
                          Jitter,
                          n_kernel_param,
@@ -192,7 +196,7 @@ sgp_workhorse = function(y,
   if(!fix_mu){
     mu = NULL
   }
-  if(!fix_kernel_param & (fix_x_ind&fix_sigma2)){
+  if(!fix_kernel_param & (fix_X_ind&fix_sigma2)){
     opt_res = optim(par=kernel_param,fn=sgp_obj_kernel_param_only,
                     y=y,X=X,s2=s2,kernel_func=kernel_func,
                     X_ind=X_ind,mu=mu,log_sigma2=log(sigma2),
@@ -202,7 +206,7 @@ sgp_workhorse = function(y,
                     method = opt_method,
                     lower=l_b,upper=r_b)
     kernel_param = opt_res$par
-  }else if(!fix_kernel_param & !fix_sigma2 & fix_x_ind){
+  }else if(!fix_kernel_param & !fix_sigma2 & fix_X_ind){
     opt_res = optim(par=c(kernel_param,log(sigma2)),fn=sgp_obj_kernel_param_and_sigma2,
                     y=y,X=X,s2=s2,kernel_func=kernel_func,
                     X_ind=X_ind,mu=mu,
@@ -224,13 +228,13 @@ sgp_workhorse = function(y,
     init_val = c(X_ind,kernel_param,log(sigma2))
     opt_res = optim(par=init_val,fn=sgp_obj_for_optim,y=y,X=X,s2=s2,m=m,n_kernel_param=n_kernel_param,kernel_func=kernel_func,
                     X_ind=X_ind,kernel_param=kernel_param,mu=mu,log_sigma2=log(sigma2),
-                    fix_kernel_param=fix_kernel_param,fix_sigma2=fix_sigma2,fix_x_ind=fix_x_ind,fix_mu=fix_mu,method = opt_method,Jitter=Jitter,
+                    fix_kernel_param=fix_kernel_param,fix_sigma2=fix_sigma2,fix_X_ind=fix_X_ind,fix_mu=fix_mu,method = opt_method,Jitter=Jitter,
                     lower=l_b,upper=r_b)
     params = opt_res$par
     if(!fix_mu){
       mu = NULL
     }
-    if(!fix_x_ind){
+    if(!fix_X_ind){
       X_ind = params[1:m]
     }
     if(!fix_kernel_param){
@@ -263,11 +267,11 @@ sgp_obj_kernel_param_and_sigma2 = function(params,y,X,s2,kernel_func,
 }
 
 sgp_obj_for_optim = function(params,y,X,s2,m,n_kernel_param,kernel_func,
-                             X_ind,kernel_param,mu,log_sigma2,fix_kernel_param,fix_sigma2,fix_x_ind,fix_mu,Jitter){
+                             X_ind,kernel_param,mu,log_sigma2,fix_kernel_param,fix_sigma2,fix_X_ind,fix_mu,Jitter){
   if(!fix_mu){
     mu = NULL
   }
-  if(!fix_x_ind){
+  if(!fix_X_ind){
     X_ind = params[1:m]
   }
   if(!fix_kernel_param){
@@ -288,8 +292,9 @@ sgp_matrix_helper = function(X_ind,kernel_param,log_sigma2,mu,s2,y,X,kernel_func
   L_Kmm = t(Rfast::cholesky(Kmm))
   L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
   Kmm_inv = crossprod(L_Kmm_inv)
-  A = Rfast::mat.mult(Knm,Kmm_inv)
-  ASA = Rfast::Crossprod(A/s2,A)/sigma2
+  # A = Rfast::mat.mult(Knm,Kmm_inv)
+  A = Knm%*%Kmm_inv
+  ASA = crossprod(A/s2,A)/sigma2
   V = solve(ASA + Kmm_inv)
   L_V = t(Rfast::cholesky(V))
   colsumAS = Rfast::colsums(A/s2)
@@ -322,7 +327,7 @@ sgp_get_posterior = function(X_ind,kernel_param,log_sigma2,mu,s2,y,X,kernel_func
     beta = temp$V%*%(crossprod(temp$A/s2,y)/sigma2+mu*(rowSums(temp$Kmm_inv)-crossprod(temp$A/s2,tilde1)/sigma2))
     Ab = temp$A%*%beta
   }
-  v = temp$Knn_diag - Rfast::rowsums(Rfast::mat.mult(temp$Knm,t(temp$L_Kmm_inv))^2)  + Rfast::rowsums(Rfast::mat.mult(temp$A,temp$L_V)^2)
+  v = temp$Knn_diag - Rfast::rowsums((temp$Knm%*%t(temp$L_Kmm_inv))^2)  + Rfast::rowsums((temp$A%*%temp$L_V)^2)
   return(list(mean=Ab+mu*tilde1,var=v,mu=mu,mean_ind=beta,V_ind=temp$V))
 }
 
@@ -347,10 +352,10 @@ sgp_obj = function(X_ind,kernel_param,log_sigma2,mu,s2,y,X,kernel_func,Jitter,d_
     beta = temp$V%*%(crossprod(temp$A/s2,y)/sigma2+mu*(Kmm_inv1-ADtilde1/sigma2))
     Ab = temp$A%*%beta
   }
-  F1=-n/2*log(2*pi*sigma2)-sum(log(s2))/2-(sum(y^2/s2)-2*sum(y/s2*Ab)-2*mu*sum(y/s2*tilde1)+sum(Ab^2/s2)+2*mu*sum(Ab/s2*tilde1)+mu^2*tilde1Dtilde1+sum(Rfast::mat.mult(temp$A/sqrt(s2),temp$L_V)^2)+sum(temp$Knn_diag/s2)-sum(Rfast::Tcrossprod(temp$Knm/sqrt(s2),temp$L_Kmm_inv)^2))/2/sigma2
+  F1=-n/2*log(2*pi*sigma2)-sum(log(s2))/2-(sum(y^2/s2)-2*sum(y/s2*Ab)-2*mu*sum(y/s2*tilde1)+sum(Ab^2/s2)+2*mu*sum(Ab/s2*tilde1)+mu^2*tilde1Dtilde1+sum(((temp$A/sqrt(s2))%*%temp$L_V)^2)+sum(temp$Knn_diag/s2)-sum(tcrossprod(temp$Knm/sqrt(s2),temp$L_Kmm_inv)^2))/2/sigma2
   F2 = -sum(log(diag(temp$L_Kmm))) - sum((temp$L_Kmm_inv%*%beta)^2)/2 - sum((temp$L_Kmm_inv%*%temp$L_V)^2)/2+sum(log(diag(temp$L_V))) + m*0.5 + mu*sum(temp$Kmm_inv%*%beta) - mu^2*sum_Kmminv/2
   elbo=drop(F1+F2)
-  return(-elbo)
+  return(-elbo/n)
 }
 
 #'@title RBF Kernel

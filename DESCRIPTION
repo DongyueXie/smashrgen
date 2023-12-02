@@ -1,10 +1,10 @@
 Package: smashrgen
 Type: Package
-Title: Generalization of smashr
-Version: 1.3.9
+Title: Empirical Bayes smoothers
+Version: 1.4.0
 Author: Dongyue Xie
 Maintainer: Dongyue Xie <dongyxie@gmail.com>
-Description: Generalization of smashr
+Description: A collection of EB smoothers for Gaussian and non-Gaussian likelihood.
 License: MIT
 Encoding: UTF-8
 LazyData: true
@@ -18,7 +18,9 @@ Imports:
         wavethresh,
         vebpm,
         mr.ash,
-        mvtnorm
+        mvtnorm,
+        Rfast,
+        torch
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

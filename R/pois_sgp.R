@@ -122,10 +122,10 @@ pois_sgp = function(y,sc=NULL,
   if(is.null(sc)){sc = rep(1,n)}
   if(length(sc)==1){sc = rep(sc,n)}
   if(is.null(post_mean)|is.null(V)|is.null(kernel_param)){
-    #temp = sgp(log(1+y/s),X,X_ind,mu=mean(log(1+y/s)),fix_x_ind = T,fix_mu = T,kernel_func = kernel_func)
+    #temp = sgp(log(1+y/s),X,X_ind,mu=mean(log(1+y/s)),fix_X_ind = T,fix_mu = T,kernel_func = kernel_func)
     #ly = smash.poiss(y/s,log=T)
     ly = log(1+y/sc)
-    temp = sgp(ly,X,X_ind,mu=NULL,fix_x_ind = T,kernel_func = kernel_func,
+    temp = sgp(ly,X,X_ind,mu=NULL,fix_X_ind = T,kernel_func = kernel_func,
                sigma2 = sd_est_diff2(ly)^2,fix_sigma2 = TRUE)
     mu = temp$fitted_g$mu
     if(is.null(post_mean)){
@@ -293,7 +293,7 @@ grad_kernel_param = function(kernel_param,X,y,sc,X_ind,kernel_func,post_mean,V,m
   dA = g_Knm%*%temp$Kmm_inv-temp$Knm%*%Smmm
   dAb = dA%*%(post_mean-mu)
   Smmmb = Smmm%*%post_mean
-  grad_log_theta1 = sum(y*dAb)-sum(temp$delta*(dAb+(rowsums(mat.mult(dA,V)*temp$A)+rowsums(mat.mult(temp$A,V)*dA)-rowsums(dA*temp$Knm)-rowsums(temp$A*g_Knm))/2))
+  grad_log_theta1 = sum(y*dAb)-sum(temp$delta*(dAb+(rowsums((dA%*%V)*temp$A)+rowsums((temp$A%*%V)*dA)-rowsums(dA*temp$Knm)-rowsums(temp$A*g_Knm))/2))
   grad_log_theta2 = -sum(temp$Kmm_inv*g_Kmm)/2 + sum(post_mean*Smmmb)/2 + sum(Smmm*V)/2 + mu*sum(Smmmb) - mu^2*(sum(Smmm))/2
 
   d_mu = sum(y*temp$tilde1) - sum(temp$delta*temp$tilde1)+sum(temp$Kmm_inv%*%post_mean)-mu*sum(temp$Kmm_inv)
@@ -407,7 +407,7 @@ pois_sgp_elbo = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Ji
 #'@title Obtain full posterior distribution
 pois_sgp_get_posterior = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,d_mat_nm,d_mat_mm){
   temp = pois_sgp_matrix_helper(X,y,sc,X_ind,kernel_param,kernel_func,post_mean,V,mu,Jitter,get_delta=F,d_mat_nm,d_mat_mm)
-  v = temp$Knn_diag - Rfast::rowsums(Rfast::Tcrossprod(temp$Knm,temp$L_Kmm_inv)^2)  + Rfast::rowsums(Rfast::mat.mult(temp$A,temp$L_V)^2)
+  v = temp$Knn_diag - Rfast::rowsums(tcrossprod(temp$Knm,temp$L_Kmm_inv)^2)  + Rfast::rowsums((temp$A%*%temp$L_V)^2)
   #v = temp$Knn_diag - rowSums((temp$Knm%*%t(temp$L_Kmm_inv))^2)  + rowSums((temp$A%*%temp$L_V)^2)
   return(list(mean=temp$Ab+mu*temp$tilde1,var=v,rate=exp(temp$Ab+mu*temp$tilde1+v/2),rate_v = (exp(v)-1)*exp(2*(temp$Ab+mu*temp$tilde1)+v)))
 }
@@ -420,12 +420,13 @@ pois_sgp_matrix_helper = function(X,y,sc,X_ind,kernel_param,kernel_func,post_mea
   L_Kmm = t(Rfast::cholesky(Kmm))
   L_Kmm_inv = forwardsolve(L_Kmm,diag(ncol(Kmm)))
   Kmm_inv = crossprod(L_Kmm_inv)
-  A = Rfast::mat.mult(Knm,Kmm_inv)
+  # A = Rfast::mat.mult(Knm,Kmm_inv)
+  A = Knm%*%Kmm_inv
   L_V = t(Rfast::cholesky(V))
   Ab = drop(A%*%post_mean)
   tilde1 = 1-Rfast::rowsums(A)
   if(get_delta){
-    delta=sc*exp(Ab+mu*tilde1+Rfast::rowsums(A*(Rfast::mat.mult(A,V)-Knm))/2+Knn_diag/2)
+    delta=sc*exp(Ab+mu*tilde1+Rfast::rowsums(A*((A%*%V)-Knm))/2+Knn_diag/2)
   }else{
     delta=NULL
   }
