@@ -110,7 +110,7 @@ sgp_get_posterior_torch = function(all_params,arg){
   n = length(arg$y)
   kernel_param = all_params[1:2]
   if(arg$fix_sigma2){
-    log_sigma2 = torch_tensor(arg$log_sigma2,dtype = torch_float64())
+    log_sigma2 = torch_log(torch_tensor(arg$sigma2,dtype = torch_float64()))
   }else{
     log_sigma2 = all_params[3]
   }
@@ -151,7 +151,7 @@ sgp_obj_torch = function(all_params,arg){
   #X_ind,kernel_param,log_sigma2,mu,s2,y,X,kernel_func,Jitter,d_mat_nm=NULL,d_mat_mm=NULL
   kernel_param = all_params[1:2]
   if(arg$fix_sigma2){
-    log_sigma2 = torch_tensor(arg$log_sigma2,dtype = torch_float64())
+    log_sigma2 = torch_log(torch_tensor(arg$sigma2,dtype = torch_float64()))
   }else{
     log_sigma2 = all_params[3]
   }

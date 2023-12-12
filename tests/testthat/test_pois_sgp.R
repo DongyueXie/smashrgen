@@ -1,18 +1,17 @@
-#library(mvnfast)
-#library(smashrgen)
+library(mvnfast)
+library(smashrgen)
 set.seed(12)
 n = 1000
-# m = 10
-X = seq(-5,5,length.out = n)
+X = seq(0,1,length.out = n)
 # X_ind = seq(-5,5,length.out = m)
-# kernel_param = c(2.473718, -0.745116)
-# K = Maternkernel(X,X,kernel_param,eps=1e-5)
-# mu = 0
-# f = drop(rmvn(1,rep(mu,n),K))
-# f = f - min(f)
-# f = f*20
-f = c(rep(0.1,n/5),rep(20,n/5),rep(0.1,n/5),rep(100,n/5),rep(0.1,n/5))
-f = f
+kernel_param = c(2, -2)
+K = Maternkernel(X,X,kernel_param)
+mu = 0
+f = drop(rmvn(1,rep(mu,n),K))
+f = f - min(f)
+f = f*20
+# f = c(rep(0.1,n/5),rep(20,n/5),rep(0.1,n/5),rep(100,n/5),rep(0.1,n/5))
+# f = f
 #s = runif(n,0,5)
 s=1
 sigma2=0.0
@@ -25,11 +24,11 @@ lines(f)
 
 res = ebpm_pois_sgp(y,s)
 
-res = pois_sgp(y,sc=s,verbose = T,m=50)
+res = pois_sgp(y,sc=s,verbose = T,m=100)
 # plot(res$elbo_tace)
 plot(y,pch=20,col='grey70')
-lines(f)
-lines(res$posterior$rate,col=4,lwd=2)
+lines(f,col='grey60')
+lines(res$posterior$rate,col=2,lwd=2)
 legend("topright",c('y',"f","f_hat"),lty=c(NA,1,1),pch=c(20,NA,NA),col=c('grey70',1,4))
 lines(res$posterior$rate+2*res$posterior$rate_sd,col=2,lty=2)
 lines(res$posterior$rate-2*res$posterior$rate_sd,col=2,lty=2)

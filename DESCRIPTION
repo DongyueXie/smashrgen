@@ -1,7 +1,7 @@
 Package: smashrgen
 Type: Package
 Title: Empirical Bayes smoothers
-Version: 1.4.0
+Version: 1.4.1
 Author: Dongyue Xie
 Maintainer: Dongyue Xie <dongyxie@gmail.com>
 Description: A collection of EB smoothers for Gaussian and non-Gaussian likelihood.
@@ -22,5 +22,8 @@ Imports:
         Rfast,
         torch
 Suggests: 
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+VignetteBuilder: knitr
