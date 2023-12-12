@@ -14,8 +14,8 @@ BMSM = function(x,sc=1,control=list()){
     stop("Argument \"control\" should be a list")
 
   control0 = bmsm_control_default()
-  if (any(!is.element(names(control),names(control0))))
-    stop("Argument \"control\" contains unknown parameter names")
+  # if (any(!is.element(names(control),names(control0))))
+  #   stop("Argument \"control\" contains unknown parameter names")
 
   control1 = modifyList(control0,control,keep.null = TRUE)
 
